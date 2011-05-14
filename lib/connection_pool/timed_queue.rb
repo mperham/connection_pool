@@ -24,7 +24,7 @@ class TimedQueue
         if @que.empty?
           @waiting.push Thread.current
           @resource.wait(@mutex, timeout)
-          raise TimeoutError if @que.empty?
+          raise Timeout::Error if @que.empty?
         else
           retval = @que.shift
           @resource.signal

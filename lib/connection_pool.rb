@@ -8,7 +8,7 @@ require 'connection_pool/timed_queue'
 #    @pool = ConnectionPool.new { Redis.new }
 #
 #    @pool.with do |redis|
-#      redis.lpop if redis.llen('my-list') > 0
+#      redis.lpop('my-list') if redis.llen('my-list') > 0
 #    end
 #
 # Example usage replacing a global connection (slower):
@@ -16,7 +16,7 @@ require 'connection_pool/timed_queue'
 #    REDIS = ConnectionPool.new { Redis.new }
 #
 #    def do_work
-#      REDIS.lpop if REDIS.llen('my-list') > 0
+#      REDIS.lpop('my-list') if REDIS.llen('my-list') > 0
 #    end
 #
 # Accepts the following options:
