@@ -3,38 +3,46 @@ require 'helper'
 class TestConnectionPool < MiniTest::Unit::TestCase
 
   class NetworkConnection
+    def initialize
+      @x = 0
+    end
     def do_something
-      sleep 0.1
-      'foo'
+      @x += 1
+      sleep 0.05
+      @x
+    end
+    def fast
+      @x += 1
     end
   end
 
   def test_basic_multithreaded_usage
     pool = ConnectionPool.new(:size => 5) { NetworkConnection.new }
     threads = []
-    10.times do
+    15.times do
       threads << Thread.new do
-        pool.with do |net|
+        pool.with_connection do |net|
           net.do_something
         end
       end
     end
     
     a = Time.now
-    threads.each(&:join)
+    result = threads.map(&:value)
     b = Time.now
-    assert((b - a) > 0.2)
+    assert_operator((b - a), :>, 0.125)
+    assert_equal(result, [1,2,3].cycle(5).sort)
   end
 
   def test_timeout
-    pool = ConnectionPool.new(:timeout => 0.1, :size => 1) { NetworkConnection.new }
+    pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
     Thread.new do
       pool.with do |net|
         net.do_something
-        sleep 0.2
+        sleep 0.1
       end
     end
-    sleep 0.1
+    sleep 0.05
     assert_raises Timeout::Error do
       pool.do_something
     end
@@ -42,6 +50,15 @@ class TestConnectionPool < MiniTest::Unit::TestCase
 
   def test_passthru
     pool = ConnectionPool.new(:timeout => 0.1, :size => 1) { NetworkConnection.new }
-    assert_equal 'foo', pool.do_something
+    assert_equal 1, pool.do_something
+    assert_equal 2, pool.do_something
+  end
+
+  def test_return_value
+    pool = ConnectionPool.new(:timeout => 0.1, :size => 1) { NetworkConnection.new }
+    result = pool.with_connection do |net|
+      net.fast
+    end
+    assert_equal 1, result
   end
 end

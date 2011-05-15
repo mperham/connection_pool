@@ -42,6 +42,7 @@ class ConnectionPool
   ensure
     checkin
   end
+  alias_method :with_connection, :with
 
   def method_missing(name, *args)
     checkout.send(name, *args)

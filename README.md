@@ -19,10 +19,8 @@ Create a pool of objects to share amongst the fibers or threads in your Ruby app
 
 Then use the pool in your application:
 
-    @memcached.with do |dalli|
-      dalli.fetch('some-count', :expires_in => 1.day) do
-        SomeModel.query.count
-      end
+    @memcached.with_connection do |dalli|
+      dalli.get('some-count')
     end
 
 
