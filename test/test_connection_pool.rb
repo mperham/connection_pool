@@ -46,6 +46,10 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     assert_raises Timeout::Error do
       pool.do_something
     end
+
+    pool.with do |conn|
+      refute_nil conn
+    end
   end
 
   def test_passthru

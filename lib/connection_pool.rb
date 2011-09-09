@@ -63,6 +63,7 @@ class ConnectionPool
   def checkin
     conn = Thread.current[:"current-#{self.object_id}"]
     Thread.current[:"current-#{self.object_id}"] = nil
+    return unless conn
     @busy.delete(conn)
     @available << conn
     nil
