@@ -11,18 +11,19 @@ class TimedQueue
   def push(obj)
     @mutex.synchronize do
       @que.push obj
-      @resource.signal
+      @resource.broadcast
     end
   end
   alias_method :<<, :push
 
   def timed_pop(timeout=0.5)
+    deadline = Time.now + timeout
     @mutex.synchronize do
-      if @que.empty?
+      loop do
+        return @que.shift unless @que.empty?
+        raise Timeout::Error if Time.now > deadline
         @resource.wait(@mutex, timeout)
-        raise Timeout::Error if @que.empty?
       end
-      return @que.shift
     end
   end
 

@@ -1,3 +1,4 @@
+Thread.abort_on_exception = true
 require 'helper'
 
 class TestConnectionPool < MiniTest::Unit::TestCase
@@ -47,6 +48,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
       pool.do_something
     end
 
+    sleep 0.05
     pool.with do |conn|
       refute_nil conn
     end
@@ -64,5 +66,17 @@ class TestConnectionPool < MiniTest::Unit::TestCase
       net.fast
     end
     assert_equal 1, result
+  end
+
+  def test_heavy_threading
+    pool = ConnectionPool.new(:timeout => 0.5, :size => 3) { NetworkConnection.new }
+    20.times do
+      Thread.new do
+        pool.with do |net|
+          sleep 0.05
+        end
+      end
+    end
+    sleep 0.5
   end
 end
