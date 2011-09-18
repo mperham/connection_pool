@@ -21,8 +21,9 @@ class TimedQueue
     @mutex.synchronize do
       loop do
         return @que.shift unless @que.empty?
-        raise Timeout::Error if Time.now > deadline
-        @resource.wait(@mutex, timeout)
+        to_wait = deadline - Time.now
+        raise Timeout::Error if to_wait <= 0
+        @resource.wait(@mutex, to_wait)
       end
     end
   end

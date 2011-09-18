@@ -34,7 +34,6 @@ class ConnectionPool
     @options[:size].times do
       @available << yield
     end
-    @busy = []
   end
 
   def with(&block)
@@ -54,9 +53,7 @@ class ConnectionPool
 
   def checkout
     Thread.current[:"current-#{self.object_id}"] ||= begin
-      conn = @available.timed_pop(@options[:timeout])
-      @busy << conn
-      conn
+      @available.timed_pop(@options[:timeout])
     end
   end
 
@@ -64,7 +61,6 @@ class ConnectionPool
     conn = Thread.current[:"current-#{self.object_id}"]
     Thread.current[:"current-#{self.object_id}"] = nil
     return unless conn
-    @busy.delete(conn)
     @available << conn
     nil
   end
