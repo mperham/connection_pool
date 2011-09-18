@@ -26,6 +26,8 @@ require 'connection_pool/timed_queue'
 class ConnectionPool
   DEFAULTS = { :size => 5, :timeout => 5 }
 
+  undef :type
+
   def initialize(options={})
     raise ArgumentError, 'Connection pool requires a block' unless block_given?
 
