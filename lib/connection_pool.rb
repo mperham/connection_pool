@@ -23,18 +23,17 @@ require 'connection_pool/timed_queue'
 # - :size - number of connections to pool, defaults to 5
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
-class ConnectionPool
+class ConnectionPool < BasicObject
   DEFAULTS = { :size => 5, :timeout => 5 }
 
-  undef :type if defined?(type)
+  def initialize(options={}, &block)
+    ::Kernel.raise ::ArgumentError, 'Connection pool requires a block' unless block
 
-  def initialize(options={})
-    raise ArgumentError, 'Connection pool requires a block' unless block_given?
-
-    @available = TimedQueue.new
+    @available = ::TimedQueue.new
+    @oid = @available.object_id
     @options = DEFAULTS.merge(options)
     @options[:size].times do
-      @available << yield
+      @available << block.call
     end
   end
 
@@ -54,14 +53,14 @@ class ConnectionPool
   private
 
   def checkout
-    Thread.current[:"current-#{self.object_id}"] ||= begin
+    ::Thread.current[:"current-#{@oid}"] ||= begin
       @available.timed_pop(@options[:timeout])
     end
   end
 
   def checkin
-    conn = Thread.current[:"current-#{self.object_id}"]
-    Thread.current[:"current-#{self.object_id}"] = nil
+    conn = ::Thread.current[:"current-#{@oid}"]
+    ::Thread.current[:"current-#{@oid}"] = nil
     return unless conn
     @available << conn
     nil

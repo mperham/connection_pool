@@ -5,6 +5,12 @@ Generic connection pooling for Ruby.
 
 MongoDB has its own connection pool.  ActiveRecord has its own connection pool.  This is a generic connection pool that can be used with anything, e.g. Redis, Dalli and other Ruby network clients.
 
+Requirements
+--------------
+
+connection_pool requires Ruby 1.9 because it uses BasicObject.
+
+
 Install
 ------------
 
