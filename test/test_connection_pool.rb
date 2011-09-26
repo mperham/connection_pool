@@ -27,12 +27,12 @@ class TestConnectionPool < MiniTest::Unit::TestCase
         end
       end
     end
-    
+
     a = Time.now
     result = threads.map(&:value)
     b = Time.now
     assert_operator((b - a), :>, 0.125)
-    assert_equal(result, [1,2,3].cycle(5).sort)
+    assert_equal([1,2,3].cycle(5).sort, result)
   end
 
   def test_timeout
