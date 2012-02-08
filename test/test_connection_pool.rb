@@ -15,6 +15,11 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     def fast
       @x += 1
     end
+    def do_something_with_block
+      @x += yield
+      sleep 0.05
+      @x
+    end
   end
 
   def test_basic_multithreaded_usage
@@ -58,6 +63,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     pool = ConnectionPool.new(:timeout => 0.1, :size => 1) { NetworkConnection.new }
     assert_equal 1, pool.do_something
     assert_equal 2, pool.do_something
+    assert_equal 5, pool.do_something_with_block { 3 }
   end
 
   def test_return_value
