@@ -17,7 +17,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     end
     def do_something_with_block
       @x += yield
-      sleep 0.5
+      sleep 0.05
       @x
     end
   end
