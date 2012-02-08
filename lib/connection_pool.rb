@@ -44,8 +44,8 @@ class ConnectionPool < BasicObject
   end
   alias_method :with_connection, :with
 
-  def method_missing(name, *args)
-    checkout.send(name, *args)
+  def method_missing(name, *args, &block)
+    checkout.send(name, *args, &block)
   ensure
     checkin
   end
