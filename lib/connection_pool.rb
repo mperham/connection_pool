@@ -1,3 +1,4 @@
+require 'connection_pool/version'
 require 'timed_queue'
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
