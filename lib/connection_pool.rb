@@ -1,5 +1,5 @@
-require 'connection_pool/version'
-require 'timed_queue'
+require 'connection_pool_basic_object'
+require 'connection_pool/timed_queue'
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
 # among many threads.  Note: Connections are eager created.
@@ -24,13 +24,13 @@ require 'timed_queue'
 # - :size - number of connections to pool, defaults to 5
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
-class ConnectionPool < BasicObject
+class ConnectionPool < ConnectionPoolBasicObject
   DEFAULTS = { :size => 5, :timeout => 5 }
 
   def initialize(options={}, &block)
     ::Kernel.raise ::ArgumentError, 'Connection pool requires a block' unless block
 
-    @available = ::TimedQueue.new
+    @available = TimedQueue.new
     @oid = @available.object_id
     @options = DEFAULTS.merge(options)
     @options[:size].times do

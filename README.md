@@ -8,8 +8,7 @@ MongoDB has its own connection pool.  ActiveRecord has its own connection pool. 
 Requirements
 --------------
 
-connection_pool requires Ruby 1.9 because it uses BasicObject.
-
+connection_pool is tested with MRI 1.8, MRI 1.9, JRuby 1.6.7+, and possibly others.
 
 Install
 ------------
