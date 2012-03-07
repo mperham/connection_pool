@@ -1,3 +1,9 @@
+x.x.x
+--------
+
+- Compatible with Ruby 1.8
+- Defines ConnectionPool::TimedQueue instead of claiming the top-level ::TimedQueue
+
 0.1.0
 --------
 

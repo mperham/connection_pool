@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-require "./lib/connection_pool/version"
+require File.expand_path('../lib/connection_pool/version', __FILE__)
 
 Gem::Specification.new do |s|
   s.name        = "connection_pool"
