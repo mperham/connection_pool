@@ -50,7 +50,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     end
     sleep 0.05
     assert_raises Timeout::Error do
-      pool.do_something
+      pool.with { |net| net.do_something }
     end
 
     sleep 0.05
@@ -60,7 +60,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
   end
 
   def test_passthru
-    pool = ConnectionPool.new(:timeout => 0.1, :size => 1) { NetworkConnection.new }
+    pool = ConnectionPool.wrap(:timeout => 0.1, :size => 1) { NetworkConnection.new }
     assert_equal 1, pool.do_something
     assert_equal 2, pool.do_something
     assert_equal 5, pool.do_something_with_block { 3 }
