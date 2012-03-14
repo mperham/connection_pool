@@ -34,8 +34,12 @@ class ConnectionPool
   def initialize(options={}, &block)
     raise ArgumentError, 'Connection pool requires a block' unless block
 
-    @options = DEFAULTS.merge(options)
-    @available = ::TimedQueue.new(options[:size], &block)
+    options = DEFAULTS.merge(options)
+
+    @size = options[:size] || DEFAULTS[:size]
+    @timeout = options[:timeout] || DEFAULTS
+
+    @available = ::TimedQueue.new(@size, &block)
     @oid = @available.object_id
   end
 
@@ -50,7 +54,7 @@ class ConnectionPool
 
   def checkout
     ::Thread.current[:"current-#{@oid}"] ||= begin
-      @available.timed_pop(@options[:timeout])
+      @available.timed_pop(@timeout)
     end
   end
 
