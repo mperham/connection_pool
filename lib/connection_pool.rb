@@ -62,7 +62,7 @@ class ConnectionPool
     nil
   end
 
-  class Wrapper < BasicObject
+  class Wrapper
     def initialize(options = {}, &block)
       @pool = ::ConnectionPool.new(options, &block)
     end
