@@ -37,7 +37,7 @@ class ConnectionPool
     options = DEFAULTS.merge(options)
 
     @size = options[:size] || DEFAULTS[:size]
-    @timeout = options[:timeout] || DEFAULTS
+    @timeout = options[:timeout] || DEFAULTS[:timeout]
 
     @available = ::TimedQueue.new(@size, &block)
     @key = :"current-#{@available.object_id}"
