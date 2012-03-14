@@ -2,8 +2,8 @@ require 'thread'
 require 'timeout'
 
 class TimedQueue
-  def initialize
-    @que = []
+  def initialize(size = 0)
+    @que = Array.new(size) { yield }
     @mutex = Mutex.new
     @resource = ConditionVariable.new
   end

@@ -34,12 +34,9 @@ class ConnectionPool
   def initialize(options={}, &block)
     raise ArgumentError, 'Connection pool requires a block' unless block
 
-    @available = ::TimedQueue.new
-    @oid = @available.object_id
     @options = DEFAULTS.merge(options)
-    @options[:size].times do
-      @available << block.call
-    end
+    @available = ::TimedQueue.new(options[:size], &block)
+    @oid = @available.object_id
   end
 
   def with(&block)
