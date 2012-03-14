@@ -12,12 +12,12 @@ require 'timed_queue'
 #      redis.lpop('my-list') if redis.llen('my-list') > 0
 #    end
 #
-# Example usage replacing a global connection (slower):
+# Example usage replacing an existing connection (slower):
 #
-#    REDIS = ConnectionPool.new { Redis.new }
+#    $redis = ConnectionPool.wrap { Redis.new }
 #
 #    def do_work
-#      REDIS.lpop('my-list') if REDIS.llen('my-list') > 0
+#      $redis.lpop('my-list') if $redis.llen('my-list') > 0
 #    end
 #
 # Accepts the following options:
