@@ -40,7 +40,7 @@ class ConnectionPool
     @timeout = options[:timeout] || DEFAULTS
 
     @available = ::TimedQueue.new(@size, &block)
-    @oid = @available.object_id
+    @key = :"current-#{@available.object_id}"
   end
 
   def with(&block)
@@ -53,14 +53,12 @@ class ConnectionPool
   private
 
   def checkout
-    ::Thread.current[:"current-#{@oid}"] ||= begin
-      @available.timed_pop(@timeout)
-    end
+    ::Thread.current[@key] ||= @available.timed_pop(@timeout)
   end
 
   def checkin
-    conn = ::Thread.current[:"current-#{@oid}"]
-    ::Thread.current[:"current-#{@oid}"] = nil
+    conn = ::Thread.current[@key]
+    ::Thread.current[@key] = nil
     return unless conn
     @available << conn
     nil
