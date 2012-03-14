@@ -1,4 +1,5 @@
 require 'rubygems'
+require 'minitest/pride'
 require 'minitest/autorun'
 
 require 'connection_pool'

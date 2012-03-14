@@ -1,3 +1,9 @@
+0.9.0
+--------
+
+- Move method\_missing magic into ConnectionPool::Wrapper (djanowski)
+- Remove BasicObject superclass (djanowski)
+
 0.1.0
 --------
 

@@ -64,6 +64,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     assert_equal 1, pool.do_something
     assert_equal 2, pool.do_something
     assert_equal 5, pool.do_something_with_block { 3 }
+    assert_equal 6, pool.with { |net| net.fast }
   end
 
   def test_return_value

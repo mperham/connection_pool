@@ -36,21 +36,19 @@ class ConnectionPool
 
     options = DEFAULTS.merge(options)
 
-    @size = options[:size] || DEFAULTS[:size]
-    @timeout = options[:timeout] || DEFAULTS
+    @size = options[:size]
+    @timeout = options[:timeout]
 
     @available = ::TimedQueue.new(@size, &block)
     @key = :"current-#{@available.object_id}"
   end
 
-  def with(&block)
+  def with
     yield checkout
   ensure
     checkin
   end
   alias_method :with_connection, :with
-
-  private
 
   def checkout
     ::Thread.current[@key] ||= @available.timed_pop(@timeout)
@@ -68,6 +66,13 @@ class ConnectionPool
     def initialize(options = {}, &block)
       @pool = ::ConnectionPool.new(options, &block)
     end
+
+    def with
+      yield @pool.checkout
+    ensure
+      @pool.checkin
+    end
+    alias_method :with_connection, :with
 
     def method_missing(name, *args, &block)
       @pool.with do |connection|
