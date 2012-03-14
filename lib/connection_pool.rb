@@ -24,11 +24,15 @@ require 'timed_queue'
 # - :size - number of connections to pool, defaults to 5
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
-class ConnectionPool < BasicObject
+class ConnectionPool
   DEFAULTS = { :size => 5, :timeout => 5 }
 
+  def self.wrap(options, &block)
+    Wrapper.new(options, &block)
+  end
+
   def initialize(options={}, &block)
-    ::Kernel.raise ::ArgumentError, 'Connection pool requires a block' unless block
+    raise ArgumentError, 'Connection pool requires a block' unless block
 
     @available = ::TimedQueue.new
     @oid = @available.object_id
@@ -44,12 +48,6 @@ class ConnectionPool < BasicObject
     checkin
   end
   alias_method :with_connection, :with
-
-  def method_missing(name, *args, &block)
-    checkout.send(name, *args, &block)
-  ensure
-    checkin
-  end
 
   private
 
@@ -67,4 +65,15 @@ class ConnectionPool < BasicObject
     nil
   end
 
+  class Wrapper < BasicObject
+    def initialize(options = {}, &block)
+      @pool = ::ConnectionPool.new(options, &block)
+    end
+
+    def method_missing(name, *args, &block)
+      @pool.with do |connection|
+        connection.send(name, *args, &block)
+      end
+    end
+  end
 end
