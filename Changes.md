@@ -1,3 +1,8 @@
+0.9.1
+--------
+
+- Fix invalid superclass in version.rb
+
 0.9.0
 --------
 
