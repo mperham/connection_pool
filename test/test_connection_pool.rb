@@ -86,4 +86,40 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     end
     sleep 0.5
   end
+
+  class Recorder
+    def initialize
+      @calls = []
+    end
+
+    attr_reader :calls
+
+    def do_work(label)
+      @calls << label
+    end
+  end
+
+  def test_nested_checkout
+    recorder = Recorder.new
+    pool = ConnectionPool.new(:size => 1) { recorder }
+    pool.with do |r_outer|
+      @other = Thread.new do |t|
+        pool.with do |r_other|
+          r_other.do_work('other')
+        end
+      end
+
+      pool.with do |r_inner|
+        r_inner.do_work('inner')
+      end
+
+      sleep 0.1
+
+      r_outer.do_work('outer')
+    end
+
+    @other.join
+
+    assert_equal ['inner', 'outer', 'other'], recorder.calls
+  end
 end
