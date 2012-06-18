@@ -44,21 +44,34 @@ class ConnectionPool
   end
 
   def with
-    yield checkout
-  ensure
-    checkin
+    conn = checkout
+    begin
+      yield conn
+    ensure
+      checkin
+    end
   end
   alias_method :with_connection, :with
 
   def checkout
-    ::Thread.current[@key] ||= @available.timed_pop(@timeout)
+    stack = ::Thread.current[@key] ||= []
+
+    if stack.empty?
+      conn = @available.timed_pop(@timeout)
+    else
+      conn = stack.last
+    end
+
+    stack.push conn
+    conn
   end
 
   def checkin
-    conn = ::Thread.current[@key]
-    ::Thread.current[@key] = nil
-    return unless conn
-    @available << conn
+    stack = ::Thread.current[@key]
+    conn = stack.pop
+    if stack.empty?
+      @available << conn
+    end
     nil
   end
 
