@@ -1,3 +1,8 @@
+0.9.2
+--------
+
+- Fix reentrant checkout leading to early checkin.
+
 0.9.1
 --------
 
