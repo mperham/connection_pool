@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Mike Perham"]
   s.email       = ["mperham@gmail.com"]
-  s.homepage    = ""
+  s.homepage    = "https://github.com/mperham/connection_pool"
   s.description = s.summary = %q{Generic connection pool for Ruby}
 
   s.files         = `git ls-files`.split("\n")
