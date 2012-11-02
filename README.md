@@ -38,6 +38,10 @@ Then use the pool in your application:
 end
 ```
 
+If all the objects in the connection pool are in use, `with_connection` will block
+until one becomes available.  If no object is available within `:timeout` seconds,
+`with_connection` will raise a `Timeout::Error`.
+
 You can use `ConnectionPool::Wrapper` to wrap a single global connection, making
 it easier to port your connection code over time:
 
