@@ -87,6 +87,12 @@ class ConnectionPool
     end
     alias_method :with_connection, :with
 
+    def respond_to?(method_symbol, include_private=false)
+      @pool.with do |connection|
+        (connection.methods + self.methods).uniq.include?(method_symbol)
+      end
+    end
+
     def method_missing(name, *args, &block)
       @pool.with do |connection|
         connection.send(name, *args, &block)
