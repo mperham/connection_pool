@@ -2,8 +2,6 @@ require 'rubygems'
 require 'minitest/pride'
 require 'minitest/autorun'
 
-require 'connection_pool'
-
 puts RUBY_DESCRIPTION
 
 class MiniTest::Unit::TestCase
@@ -15,3 +13,7 @@ class MiniTest::Unit::TestCase
   end
 
 end
+
+$VERBOSE = 1
+
+require 'connection_pool'
