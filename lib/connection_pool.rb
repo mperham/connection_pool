@@ -25,19 +25,19 @@ require_relative 'timed_queue'
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
 class ConnectionPool
-  DEFAULTS = { :size => 5, :timeout => 5 }
+  DEFAULTS = {size: 5, timeout: 5}
 
   def self.wrap(options, &block)
     Wrapper.new(options, &block)
   end
 
-  def initialize(options={}, &block)
+  def initialize(options = {}, &block)
     raise ArgumentError, 'Connection pool requires a block' unless block
 
     options = DEFAULTS.merge(options)
 
-    @size = options[:size]
-    @timeout = options[:timeout]
+    @size = options.fetch(:size)
+    @timeout = options.fetch(:timeout)
 
     @available = ::TimedQueue.new(@size, &block)
     @key = :"current-#{@available.object_id}"
@@ -51,7 +51,7 @@ class ConnectionPool
       checkin
     end
   end
-  alias_method :with_connection, :with
+  alias :with_connection :with
 
   def checkout
     stack = ::Thread.current[@key] ||= []
@@ -87,7 +87,7 @@ class ConnectionPool
     ensure
       @pool.checkin
     end
-    alias_method :with_connection, :with
+    alias :with_connection :with
 
     def respond_to?(id, *args)
       METHODS.include?(id) || @pool.with { |c| c.respond_to?(id, *args) }
