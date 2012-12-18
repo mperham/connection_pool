@@ -16,4 +16,4 @@ end
 
 $VERBOSE = 1
 
-require 'connection_pool'
+require_relative '../lib/connection_pool'

@@ -1,5 +1,5 @@
-require 'connection_pool/version'
-require 'timed_queue'
+require_relative 'connection_pool/version'
+require_relative 'timed_queue'
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
 # among many threads.  Note: Connections are eager created.
