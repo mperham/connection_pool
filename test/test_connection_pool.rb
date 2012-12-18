@@ -7,18 +7,25 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     def initialize
       @x = 0
     end
+
     def do_something
       @x += 1
       sleep 0.05
       @x
     end
+
     def fast
       @x += 1
     end
+
     def do_something_with_block
       @x += yield
       sleep 0.05
       @x
+    end
+
+    def respond_to?(method_id, *args)
+      method_id == :do_magic || super(method_id, *args)
     end
   end
 
@@ -65,6 +72,11 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     assert_equal 2, pool.do_something
     assert_equal 5, pool.do_something_with_block { 3 }
     assert_equal 6, pool.with { |net| net.fast }
+
+    assert pool.respond_to?(:with)
+    assert pool.respond_to?(:do_something)
+    assert pool.respond_to?(:do_magic)
+    refute pool.respond_to?(:do_lots_of_magic)
   end
 
   def test_return_value
