@@ -10,7 +10,7 @@ class TimedQueue
 
   def push(obj)
     @mutex.synchronize do
-      @que.push obj
+      @que.unshift obj
       @resource.broadcast
     end
   end
