@@ -102,6 +102,16 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     sleep 0.5
   end
 
+  def test_reuses_objects_when_pool_not_saturated
+    pool = ConnectionPool.new(:size => 5) { NetworkConnection.new }
+
+    ids = 10.times.map do
+      pool.with { |c| c.object_id }
+    end
+
+    assert_equal 1, ids.uniq.size
+  end
+
   class Recorder
     def initialize
       @calls = []
