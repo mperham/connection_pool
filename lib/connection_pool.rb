@@ -75,7 +75,9 @@ class ConnectionPool
     nil
   end
 
-  class Wrapper
+  class Wrapper < ::BasicObject
+    METHODS = [:with, :with_connection]
+
     def initialize(options = {}, &block)
       @pool = ::ConnectionPool.new(options, &block)
     end
@@ -88,7 +90,7 @@ class ConnectionPool
     alias_method :with_connection, :with
 
     def respond_to?(id, *args)
-      super(id, *args) || @pool.with { |c| c.respond_to?(id, *args) }
+      METHODS.include?(id) || @pool.with { |c| c.respond_to?(id, *args) }
     end
 
     def method_missing(name, *args, &block)

@@ -72,7 +72,10 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     assert_equal 2, pool.do_something
     assert_equal 5, pool.do_something_with_block { 3 }
     assert_equal 6, pool.with { |net| net.fast }
+  end
 
+  def test_passthru_respond_to
+    pool = ConnectionPool.wrap(:timeout => 0.1, :size => 1) { NetworkConnection.new }
     assert pool.respond_to?(:with)
     assert pool.respond_to?(:do_something)
     assert pool.respond_to?(:do_magic)
