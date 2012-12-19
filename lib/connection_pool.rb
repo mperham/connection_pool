@@ -1,5 +1,4 @@
 require_relative 'connection_pool/version'
-require_relative 'timed_queue'
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
 # among many threads.  Note: Connections are eager created.
@@ -39,7 +38,7 @@ class ConnectionPool
     @size = options.fetch(:size)
     @timeout = options.fetch(:timeout)
 
-    @available = ::TimedQueue.new(@size, &block)
+    @available = TimedStack.new(@size, &block)
     @key = :"current-#{@available.object_id}"
   end
 
@@ -61,7 +60,7 @@ class ConnectionPool
     stack = ::Thread.current[@key] ||= []
 
     if stack.empty?
-      conn = @available.timed_pop(@timeout)
+      conn = @available.pop(@timeout)
     else
       conn = stack.last
     end
@@ -108,3 +107,5 @@ class ConnectionPool
     end
   end
 end
+
+require_relative 'connection_pool/timed_stack'

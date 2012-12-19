@@ -1,7 +1,7 @@
 require 'thread'
 require 'timeout'
 
-class TimedQueue
+class ConnectionPool::TimedStack
   def initialize(size = 0)
     @que = Array.new(size) { yield }
     @mutex = Mutex.new
@@ -16,7 +16,7 @@ class TimedQueue
   end
   alias_method :<<, :push
 
-  def timed_pop(timeout=0.5)
+  def pop(timeout=0.5)
     deadline = Time.now + timeout
     @mutex.synchronize do
       loop do
