@@ -51,11 +51,6 @@ class ConnectionPool
     end
   end
 
-  def with_connection(&block)
-    warn("ConnectionPool#with_connection is deprecated and will be removed in version 1.0. Upgrade your code to use ConnectionPool#with instead. (in #{caller[0]})")
-    with(&block)
-  end
-
   def checkout
     stack = ::Thread.current[@key] ||= []
 
@@ -89,11 +84,6 @@ class ConnectionPool
       yield @pool.checkout
     ensure
       @pool.checkin
-    end
-
-    def with_connection(&block)
-      warn("ConnectionPool::Wrapper#with_connection is deprecated and will be removed in version 1.0. Upgrade your code to use ConnectionPool::Wrapper#with instead. (in #{caller[0]})")
-      with(&block)
     end
 
     def respond_to?(id, *args)
