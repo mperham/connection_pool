@@ -51,7 +51,11 @@ class ConnectionPool
       checkin
     end
   end
-  alias :with_connection :with
+
+  def with_connection(&block)
+    warn("ConnectionPool#with_connection is deprecated and will be removed in version 1.0. Upgrade your code to use ConnectionPool#with instead. (in #{caller[0]})")
+    with(&block)
+  end
 
   def checkout
     stack = ::Thread.current[@key] ||= []
@@ -76,7 +80,7 @@ class ConnectionPool
   end
 
   class Wrapper < ::BasicObject
-    METHODS = [:with, :with_connection]
+    METHODS = [:with]
 
     def initialize(options = {}, &block)
       @pool = ::ConnectionPool.new(options, &block)
@@ -87,7 +91,11 @@ class ConnectionPool
     ensure
       @pool.checkin
     end
-    alias :with_connection :with
+
+    def with_connection(&block)
+      warn("ConnectionPool::Wrapper#with_connection is deprecated and will be removed in version 1.0. Upgrade your code to use ConnectionPool::Wrapper#with instead. (in #{caller[0]})")
+      with(&block)
+    end
 
     def respond_to?(id, *args)
       METHODS.include?(id) || @pool.with { |c| c.respond_to?(id, *args) }

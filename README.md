@@ -33,14 +33,14 @@ Create a pool of objects to share amongst the fibers or threads in your Ruby app
 Then use the pool in your application:
 
 ``` ruby
-@memcached.with_connection do |dalli|
+@memcached.with do |dalli|
   dalli.get('some-count')
 end
 ```
 
-If all the objects in the connection pool are in use, `with_connection` will block
+If all the objects in the connection pool are in use, `with` will block
 until one becomes available.  If no object is available within `:timeout` seconds,
-`with_connection` will raise a `Timeout::Error`.
+`with` will raise a `Timeout::Error`.
 
 You can use `ConnectionPool::Wrapper` to wrap a single global connection, making
 it easier to port your connection code over time:
@@ -54,10 +54,10 @@ $redis.smembers('foo')
 The Wrapper uses `method_missing` to checkout a connection, run the
 requested method and then immediately check the connection back into the
 pool.  It's **not** high-performance so you'll want to port your
-performance sensitive code to use `with_connection` as soon as possible.
+performance sensitive code to use `with` as soon as possible.
 
 ``` ruby
-$redis.with_connection do |conn|
+$redis.with do |conn|
   conn.sadd('foo', 1)
   conn.smembers('foo')
 end

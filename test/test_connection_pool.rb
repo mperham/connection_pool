@@ -34,7 +34,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     threads = []
     15.times do
       threads << Thread.new do
-        pool.with_connection do |net|
+        pool.with do |net|
           net.do_something
         end
       end
@@ -84,7 +84,7 @@ class TestConnectionPool < MiniTest::Unit::TestCase
 
   def test_return_value
     pool = ConnectionPool.new(:timeout => 0.1, :size => 1) { NetworkConnection.new }
-    result = pool.with_connection do |net|
+    result = pool.with do |net|
       net.fast
     end
     assert_equal 1, result
