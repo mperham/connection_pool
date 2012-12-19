@@ -1,3 +1,11 @@
+1.0.0
+-----
+
+- `#with_connection` is now gone in favor of `#with`.
+
+- We no longer pollute the top level namespace with our internal
+`TimedStack` class.
+
 0.9.3
 --------
 
