@@ -1,3 +1,3 @@
 class ConnectionPool
-  VERSION = "0.9.3"
+  VERSION = "1.0.0"
 end
