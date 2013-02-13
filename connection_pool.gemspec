@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
-require "./lib/connection_pool/version"
+$LOAD_PATH.unshift('./lib')
+require "connection_pool/version"
 
 Gem::Specification.new do |s|
   s.name        = "connection_pool"
