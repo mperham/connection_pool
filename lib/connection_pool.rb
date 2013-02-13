@@ -73,7 +73,7 @@ class ConnectionPool
     nil
   end
 
-  class Wrapper < ::BasicObject
+  class Wrapper < (Object.const_defined?(:BasicObject) ? ::BasicObject : ::Object)
     METHODS = [:with]
 
     def initialize(options = {}, &block)
