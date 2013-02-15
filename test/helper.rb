@@ -16,4 +16,5 @@ end
 
 $VERBOSE = 1
 
-require_relative '../lib/connection_pool'
+$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
+require 'connection_pool'

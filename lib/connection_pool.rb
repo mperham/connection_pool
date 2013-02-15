@@ -1,4 +1,4 @@
-require_relative 'connection_pool/version'
+require 'connection_pool/version'
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
 # among many threads.  Note: Connections are eager created.
@@ -24,7 +24,7 @@ require_relative 'connection_pool/version'
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5}
+  DEFAULTS = {:size => 5, :timeout => 5}
 
   def self.wrap(options, &block)
     Wrapper.new(options, &block)
@@ -73,7 +73,7 @@ class ConnectionPool
     nil
   end
 
-  class Wrapper < ::BasicObject
+  class Wrapper < (Object.const_defined?(:BasicObject) ? ::BasicObject : ::Object)
     METHODS = [:with]
 
     def initialize(options = {}, &block)
@@ -98,4 +98,4 @@ class ConnectionPool
   end
 end
 
-require_relative 'connection_pool/timed_stack'
+require 'connection_pool/timed_stack'
