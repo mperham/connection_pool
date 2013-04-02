@@ -91,9 +91,15 @@ class ConnectionPool
     end
 
     def method_missing(name, *args, &block)
-      @pool.with do |connection|
-        connection.send(name, *args, &block)
+      (class<<self;self;end).class_eval do
+        define_method(name) do |*m_args, &blk|
+          @pool.with do |connection|
+            connection.send(name, *m_args, &blk)
+          end
+        end
       end
+      METHODS << name
+      __send__(name, *args, &block)
     end
   end
 end
