@@ -53,7 +53,7 @@ $redis.smembers('foo')
 
 The Wrapper uses `method_missing` to checkout a connection, run the
 requested method and then immediately check the connection back into the
-pool.  It's **not** high-performance so you'll want to port your
+pool.  It's slightly slower(~2%) than directly using `with` so you might want to port your
 performance sensitive code to use `with` as soon as possible.
 
 ``` ruby
