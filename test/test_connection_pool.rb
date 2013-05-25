@@ -29,6 +29,18 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     end
   end
 
+  class Recorder
+    def initialize
+      @calls = []
+    end
+
+    attr_reader :calls
+
+    def do_work(label)
+      @calls << label
+    end
+  end
+
   def test_basic_multithreaded_usage
     pool = ConnectionPool.new(:size => 5) { NetworkConnection.new }
     threads = []
@@ -112,18 +124,6 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     assert_equal 1, ids.uniq.size
   end
 
-  class Recorder
-    def initialize
-      @calls = []
-    end
-
-    attr_reader :calls
-
-    def do_work(label)
-      @calls << label
-    end
-  end
-
   def test_nested_checkout
     recorder = Recorder.new
     pool = ConnectionPool.new(:size => 1) { recorder }
@@ -146,5 +146,57 @@ class TestConnectionPool < MiniTest::Unit::TestCase
     @other.join
 
     assert_equal ['inner', 'outer', 'other'], recorder.calls
+  end
+
+  def test_shutdown_is_executed_for_all_connections
+    recorders = []
+
+    pool = ConnectionPool.new(:size => 3) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    pool.shutdown do |recorder|
+      recorder.do_work("shutdown")
+    end
+
+    assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
+  end
+
+  def test_raises_error_after_shutting_down
+    pool = ConnectionPool.new(:size => 1) { true }
+
+    pool.shutdown { }
+
+    assert_raises ConnectionPool::PoolShuttingDownError do
+      pool.checkout
+    end
+  end
+
+  def test_runs_shutdown_block_asynchronously_if_connection_was_in_use
+    recorders = []
+
+    pool = ConnectionPool.new(:size => 3) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    pool.checkout
+
+    pool.shutdown do |recorder|
+      recorder.do_work("shutdown")
+    end
+
+    assert_equal [["shutdown"], ["shutdown"], []], recorders.map { |r| r.calls }
+
+    pool.checkin
+
+    assert_equal [["shutdown"], ["shutdown"], ["shutdown"]], recorders.map { |r| r.calls }
+  end
+
+  def test_raises_an_error_if_shutdown_is_called_without_a_block
+    pool = ConnectionPool.new(:size => 1) { }
+
+    assert_raises ArgumentError do
+      pool.shutdown
+    end
   end
 end
