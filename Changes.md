@@ -1,3 +1,13 @@
+1.0.1
+-----
+
+- New `#shutdown` method
+
+    This method accepts a block and calls the block for each
+    connection in the pool. After calling this method, trying to get a
+    connection from the pool raises a `PullShuttingDownError`
+    exception.
+    
 1.0.0
 -----
 
