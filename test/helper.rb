@@ -2,9 +2,9 @@ require 'rubygems'
 require 'minitest/pride'
 require 'minitest/autorun'
 
-puts RUBY_DESCRIPTION
+require 'connection_pool'
 
-class MiniTest::Unit::TestCase
+class Minitest::Unit::TestCase
 
   def async_test(time=0.5)
     q = TimedQueue.new
@@ -13,7 +13,3 @@ class MiniTest::Unit::TestCase
   end
 
 end
-
-$VERBOSE = 1
-
-require_relative '../lib/connection_pool'
