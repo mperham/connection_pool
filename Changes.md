@@ -1,12 +1,11 @@
-1.0.1
+1.1.0
 -----
 
-- New `#shutdown` method
+- New `#shutdown` method (simao)
 
     This method accepts a block and calls the block for each
     connection in the pool. After calling this method, trying to get a
-    connection from the pool raises a `PullShuttingDownError`
-    exception.
+    connection from the pool raises `PoolShuttingDownError`.
     
 1.0.0
 -----

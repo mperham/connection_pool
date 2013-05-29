@@ -1,8 +1,7 @@
 require 'thread'
 require 'timeout'
 
-class ConnectionPool::PoolShuttingDownError < RuntimeError
-end
+class ConnectionPool::PoolShuttingDownError < RuntimeError; end
 
 class ConnectionPool::TimedStack
   def initialize(size = 0)
