@@ -73,6 +73,10 @@ class ConnectionPool
     nil
   end
 
+  def shutdown(&block)
+    @available.shutdown(&block)
+  end
+
   class Wrapper < ::BasicObject
     METHODS = [:with]
 
