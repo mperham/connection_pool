@@ -199,4 +199,9 @@ class TestConnectionPool < Minitest::Test
       pool.shutdown
     end
   end
+
+  def test_wrapper_provides_access_to_pool
+    wrapper = ConnectionPool::Wrapper.new(:size => 1) { true }
+    assert_equal ConnectionPool, wrapper.pool.class
+  end
 end

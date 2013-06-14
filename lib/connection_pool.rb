@@ -81,6 +81,8 @@ class ConnectionPool
   class Wrapper < ::BasicObject
     METHODS = [:with]
 
+    attr_reader :pool
+
     def initialize(options = {}, &block)
       @pool = ::ConnectionPool.new(options, &block)
     end
