@@ -200,8 +200,17 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
-  def test_wrapper_provides_access_to_pool
-    wrapper = ConnectionPool::Wrapper.new(:size => 1) { true }
-    assert_equal ConnectionPool, wrapper.pool.class
+  def test_shutdown_is_executed_for_all_connections_in_wrapped_pool
+    recorders = []
+
+    wrapper = ConnectionPool::Wrapper.new(:size => 3) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    wrapper.pool_shutdown do |recorder|
+      recorder.do_work("shutdown")
+    end
+
+    assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
   end
 end

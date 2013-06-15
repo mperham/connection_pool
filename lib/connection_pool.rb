@@ -79,9 +79,7 @@ class ConnectionPool
   end
 
   class Wrapper < ::BasicObject
-    METHODS = [:with]
-
-    attr_reader :pool
+    METHODS = [:with, :pool_shutdown]
 
     def initialize(options = {}, &block)
       @pool = ::ConnectionPool.new(options, &block)
@@ -91,6 +89,10 @@ class ConnectionPool
       yield @pool.checkout
     ensure
       @pool.checkin
+    end
+
+    def pool_shutdown(&block)
+      @pool.shutdown(&block)
     end
 
     def respond_to?(id, *args)
