@@ -4,6 +4,7 @@ require 'timeout'
 class ConnectionPool::PoolShuttingDownError < RuntimeError; end
 
 class ConnectionPool::TimedStack
+
   def initialize(size = 0)
     @que = Array.new(size) { yield }
     @mutex = Mutex.new
@@ -53,10 +54,6 @@ class ConnectionPool::TimedStack
 
   def empty?
     @que.empty?
-  end
-
-  def clear
-    @que.clear
   end
 
   def length
