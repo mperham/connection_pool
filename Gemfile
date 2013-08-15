@@ -1,7 +1,3 @@
-source "http://rubygems.org"
+source "https://rubygems.org"
 
-# Specify your gem's dependencies in connection_pool.gemspec
-gemspec
-
-gem 'rake'
-gem 'minitest'
+gemspec(development_group: :runtime)
