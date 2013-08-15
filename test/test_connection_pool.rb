@@ -1,8 +1,7 @@
 Thread.abort_on_exception = true
 require 'helper'
 
-class TestConnectionPool < Minitest::Test
-
+Class.new(ConnectionPoolTest) do
   class NetworkConnection
     def initialize
       @x = 0
