@@ -25,7 +25,7 @@ require 'connection_pool/timed_stack'
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5}
+  DEFAULTS = {size: 5, timeout: 5, always_new_connection: false}
 
   def self.wrap(options, &block)
     Wrapper.new(options, &block)
@@ -38,17 +38,27 @@ class ConnectionPool
 
     @size = options.fetch(:size)
     @timeout = options.fetch(:timeout)
+    @always_new_connection = options.fetch(:always_new_connection)
 
     @available = TimedStack.new(@size, &block)
     @key = :"current-#{@available.object_id}"
   end
 
   def with
-    conn = checkout
-    begin
-      yield conn
-    ensure
-      checkin
+    if @always_new_connection
+      conn = @available.pop(@timeout)
+      begin
+        yield conn
+      ensure
+        @available << conn
+      end
+    else
+      conn = checkout
+      begin
+        yield conn
+      ensure
+        checkin
+      end
     end
   end
 
@@ -85,10 +95,8 @@ class ConnectionPool
       @pool = ::ConnectionPool.new(options, &block)
     end
 
-    def with
-      yield @pool.checkout
-    ensure
-      @pool.checkin
+    def with(&block)
+      @pool.with(&block)
     end
 
     def pool_shutdown(&block)
