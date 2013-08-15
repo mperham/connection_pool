@@ -106,5 +106,3 @@ class ConnectionPool
     end
   end
 end
-
-require_relative 'connection_pool/timed_stack'
