@@ -1,10 +1,10 @@
 require 'rubygems'
-require 'minitest/pride'
+require 'minitest'
 require 'minitest/autorun'
 
 require 'connection_pool'
 
-class Minitest::Unit::TestCase
+class Minitest::Test
 
   def async_test(time=0.5)
     q = TimedQueue.new

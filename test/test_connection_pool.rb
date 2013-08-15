@@ -148,6 +148,22 @@ class TestConnectionPool < Minitest::Test
     assert_equal ['inner', 'outer', 'other'], recorder.calls
   end
 
+  def test_nested_checkout_with_new_connection_flag
+    recorders = []
+    pool = ConnectionPool.new(:size => 2, :always_new_connection => true) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+    pool.with do |r_outer|
+      pool.with do |r_inner|
+        r_inner.do_work('inner')
+      end
+
+      r_outer.do_work('outer')
+    end
+
+    assert_equal [['inner'], ['outer']], recorders.map { |r| r.calls }
+  end
+
   def test_shutdown_is_executed_for_all_connections
     recorders = []
 
