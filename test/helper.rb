@@ -2,6 +2,8 @@ require 'rubygems'
 require 'minitest/pride'
 require 'minitest/autorun'
 
+$VERBOSE = 1
+
 require_relative '../lib/connection_pool'
 
 class Minitest::Unit::TestCase
