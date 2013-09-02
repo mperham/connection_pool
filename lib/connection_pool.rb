@@ -1,4 +1,5 @@
 require 'connection_pool/version'
+require 'connection_pool/exceptions'
 require 'connection_pool/timed_stack'
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
@@ -25,7 +26,7 @@ require 'connection_pool/timed_stack'
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5}
+  DEFAULTS = { :size => 5, :timeout => 5, :loading => :eager }
 
   def self.wrap(options, &block)
     Wrapper.new(options, &block)
@@ -36,11 +37,15 @@ class ConnectionPool
 
     options = DEFAULTS.merge(options)
 
-    @size = options.fetch(:size)
-    @timeout = options.fetch(:timeout)
+    @size            = options.fetch(:size)
+    @timeout         = options.fetch(:timeout)
+    @loading_pattern = options.fetch(:loading)
 
-    @available = TimedStack.new(@size, &block)
-    @key = :"current-#{@available.object_id}"
+    @client_creation_block = block
+    @existing_conns_count  = eager_loaded? ? @size : 0
+
+    @available = TimedStack.new(@size, eager_loaded?, &block)
+    @key       = :"current-#{@available.object_id}"
   end
 
   def with
@@ -54,23 +59,31 @@ class ConnectionPool
 
   def checkout
     stack = ::Thread.current[@key] ||= []
+    conn = if stack.empty?
+      begin
+        @available.pop(@existing_conns_count, @timeout)
+      rescue Timeout::Error
+        raise Timeout::Error if eager_loaded?
 
-    if stack.empty?
-      conn = @available.pop(@timeout)
+        if @available.max_connections_reached?(@existing_conns_count)
+          raise ConnectionPool::ConnectionPoolFullException
+        else
+          create_connection
+        end
+      rescue ConnectionPool::EmptyPoolException
+        create_connection
+      end
     else
-      conn = stack.last
+      stack.last
     end
-
     stack.push conn
     conn
   end
 
   def checkin
     stack = ::Thread.current[@key]
-    conn = stack.pop
-    if stack.empty?
-      @available << conn
-    end
+    conn  = stack.pop
+    @available << conn if stack.empty?
     nil
   end
 
@@ -104,5 +117,17 @@ class ConnectionPool
         connection.send(name, *args, &block)
       end
     end
+  end
+
+
+  private
+
+  def create_connection
+    @existing_conns_count += 1
+    @client_creation_block.call
+  end
+
+  def eager_loaded?
+    @loading_pattern == :eager
   end
 end
