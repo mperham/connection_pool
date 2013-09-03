@@ -4,12 +4,13 @@ require 'timeout'
 class ConnectionPool::TimedStack
 
   def initialize(size = 0, eager_loading = true, &block)
-    @que            = eager_loading ? Array.new(size) { yield } : []
-    @mutex          = Mutex.new
-    @resource       = ConditionVariable.new
-    @shutdown_block = nil
-    @max_size       = size
-    @eager_loading  = eager_loading
+    @que                   = eager_loading ? Array.new(size) { yield } : []
+    @mutex                 = Mutex.new
+    @resource              = ConditionVariable.new
+    @shutdown_block        = nil
+    @max_size              = size
+    @eager_loading         = eager_loading
+    @existing_conns_count  = eager_loading ? size : 0
   end
 
   def push(obj)
@@ -25,7 +26,7 @@ class ConnectionPool::TimedStack
   end
   alias_method :<<, :push
 
-  def pop(connections_count, timeout = 0.5)
+  def pop(timeout = 0.5)
     deadline  = Time.now + timeout
     @mutex.synchronize do
       loop do
@@ -35,7 +36,7 @@ class ConnectionPool::TimedStack
           return @que.pop unless empty?
         else
           if empty?
-            raise(ConnectionPool::EmptyPoolException) unless max_connections_reached?(connections_count)
+            raise(ConnectionPool::EmptyPoolException) unless max_connections_reached?
           else
             return @que.pop
           end
@@ -62,8 +63,12 @@ class ConnectionPool::TimedStack
     end
   end
 
-  def max_connections_reached?(existing_connections_count)
-    existing_connections_count == @max_size
+  def increment_connection
+    @existing_conns_count += 1
+  end
+
+  def max_connections_reached?
+    @existing_conns_count == @max_size
   end
 
   def empty?

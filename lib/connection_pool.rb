@@ -42,7 +42,6 @@ class ConnectionPool
     @loading_pattern = options.fetch(:loading)
 
     @client_creation_block = block
-    @existing_conns_count  = eager_loaded? ? @size : 0
 
     @available = TimedStack.new(@size, eager_loaded?, &block)
     @key       = :"current-#{@available.object_id}"
@@ -61,11 +60,11 @@ class ConnectionPool
     stack = ::Thread.current[@key] ||= []
     conn = if stack.empty?
       begin
-        @available.pop(@existing_conns_count, @timeout)
+        @available.pop(@timeout)
       rescue Timeout::Error
         raise Timeout::Error if eager_loaded?
 
-        if @available.max_connections_reached?(@existing_conns_count)
+        if @available.max_connections_reached?
           raise ConnectionPool::ConnectionPoolFullException
         else
           create_connection
@@ -123,7 +122,7 @@ class ConnectionPool
   private
 
   def create_connection
-    @existing_conns_count += 1
+    @available.increment_connection
     @client_creation_block.call
   end
 
