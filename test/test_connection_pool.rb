@@ -67,6 +67,7 @@ class TestConnectionPool < Minitest::Test
         sleep 0.1
       end
     end
+
     sleep 0.05
     assert_raises Timeout::Error do
       pool.with { |net| net.do_something }
@@ -116,7 +117,6 @@ class TestConnectionPool < Minitest::Test
 
   def test_reuses_objects_when_pool_not_saturated
     pool = ConnectionPool.new(:size => 5) { NetworkConnection.new }
-
     ids = 10.times.map do
       pool.with { |c| c.object_id }
     end
@@ -212,5 +212,64 @@ class TestConnectionPool < Minitest::Test
     end
 
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
+  end
+
+   ## Lazy loading
+  def test_lazy_load_empty_pool_creates_new_connection
+    pool        = ConnectionPool.new(:size => 1, :loading => :lazy) { NetworkConnection.new }
+    connections = pool.instance_variable_get("@available").instance_variable_get("@que")
+
+    assert_equal 0, connections.size
+
+    pool.with { |c| c.do_something }
+
+    assert_equal 1, connections.size
+  end
+
+  def test_lazy_pool_reuses_connection
+    pool        = ConnectionPool.new(:size => 1, :loading => :lazy) { NetworkConnection.new }
+    existing_id = pool.with { |c| c.object_id }
+    reused_id   = pool.with { |c| c.object_id }
+
+    assert_equal existing_id, reused_id
+  end
+
+  def test_lazy_pool_with_connection_creates_new_one
+    pool = ConnectionPool.new(:timeout => 0.05, :size => 2, :loading => :lazy) { NetworkConnection.new }
+
+    Thread.new do
+      pool.with do |net|
+        net.do_something
+        sleep 0.05
+      end
+    end
+
+    pool.with do |conn|
+      conn.do_something
+    end
+
+    sleep 0.1
+    assert_equal 2, pool.instance_variable_get("@available").instance_variable_get("@que").size
+  end
+
+  def test_lazy_load_connection_pool_full
+    pool = ConnectionPool.new(:timeout => 0.05, :size => 1, :loading => :lazy) { NetworkConnection.new }
+    
+    Thread.new do
+      pool.with do |net|
+        net.do_something
+        sleep 0.1
+      end
+    end
+
+    sleep 0.05
+    assert_raises ConnectionPool::ConnectionPoolFullException do
+      pool.with { |net| net.do_something }
+    end
+
+    sleep 0.05
+    pool.with do |conn|
+      refute_nil conn
+    end
   end
 end

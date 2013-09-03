@@ -15,7 +15,7 @@ Install
 Notes
 ------------
 
-- Connections are eager created when the pool is created.
+- Connections are eager/lazy depending on :loading param on ConnectionPool's initializer (default :eager).
 - There is no provision for repairing or checking the health of a
   connection; connections should be self-repairing.  This is
 true of the dalli and redis clients.
@@ -46,7 +46,7 @@ You can use `ConnectionPool::Wrapper` to wrap a single global connection, making
 it easier to port your connection code over time:
 
 ``` ruby
-$redis = ConnectionPool::Wrapper.new(:size => 5, :timeout => 3) { Redis.connect }
+$redis = ConnectionPool::Wrapper.new(:size => 5, :timeout => 3, :loading => :lazy) { Redis.connect }
 $redis.sadd('foo', 1)
 $redis.smembers('foo')
 ```
