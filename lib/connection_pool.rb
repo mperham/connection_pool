@@ -12,6 +12,12 @@ require 'connection_pool/timed_stack'
 #      redis.lpop('my-list') if redis.llen('my-list') > 0
 #    end
 #
+# Using optional timeout override (for that single invocation)
+#
+#    @pool.with(:timeout => 2.0) do |redis|
+#      redis.lpop('my-list') if redis.llen('my-list') > 0
+#    end
+#
 # Example usage replacing an existing connection (slower):
 #
 #    $redis = ConnectionPool.wrap { Redis.new }
@@ -43,8 +49,8 @@ class ConnectionPool
     @key = :"current-#{@available.object_id}"
   end
 
-  def with
-    conn = checkout
+  def with(options = {})
+    conn = checkout(options)
     begin
       yield conn
     ensure
@@ -52,11 +58,12 @@ class ConnectionPool
     end
   end
 
-  def checkout
+  def checkout(options = {})
     stack = ::Thread.current[@key] ||= []
 
     if stack.empty?
-      conn = @available.pop(@timeout)
+      timeout = options[:timeout] || @timeout
+      conn = @available.pop(timeout)
     else
       conn = stack.last
     end

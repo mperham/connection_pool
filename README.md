@@ -42,6 +42,19 @@ If all the objects in the connection pool are in use, `with` will block
 until one becomes available.  If no object is available within `:timeout` seconds,
 `with` will raise a `Timeout::Error`.
 
+Optionally, you can specify a timeout override using the with-block semantics:
+
+``` ruby
+@memcached.with(:timeout => 2.0) do |dalli|
+  dalli.get('some-count')
+end
+```
+
+This will only modify the resource-get timeout for this particular invocation. This
+is useful if you want to fail-fast on certain non critical sections when a resource
+is not available, or conversely if you are comfortable blocking longer on a particular
+resource. This is not implemented in the below `ConnectionPool::Wrapper` class.
+
 You can use `ConnectionPool::Wrapper` to wrap a single global connection, making
 it easier to port your connection code over time:
 
