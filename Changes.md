@@ -1,3 +1,11 @@
+1.2.0
+
+- New `with(options)` and `checkout(options)` variant. 
+ 
+  Can pass in options hash to with and checkout methods. First argument
+  is ':timeout' which will override. In future more could be added. Will
+  not break current applications
+
 1.1.0
 -----
 
