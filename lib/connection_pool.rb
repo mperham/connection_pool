@@ -43,8 +43,8 @@ class ConnectionPool
     @key = :"current-#{@available.object_id}"
   end
 
-  def with
-    conn = checkout
+  def with options = {}
+    conn = checkout(options)
     begin
       yield conn
     ensure
@@ -52,11 +52,12 @@ class ConnectionPool
     end
   end
 
-  def checkout
+  def checkout options = {}
     stack = ::Thread.current[@key] ||= []
 
     if stack.empty?
-      conn = @available.pop(@timeout)
+      timeout = options[:timeout] || @timeout
+      conn = @available.pop(timeout)
     else
       conn = stack.last
     end
