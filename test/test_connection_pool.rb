@@ -180,6 +180,49 @@ class TestConnectionPool < Minitest::Test
     assert_equal ['inner', 'outer', 'other'], recorder.calls
   end
 
+  def test_count
+  end
+
+  def test_enumerable
+    recorders = []
+
+    pool = ConnectionPool.new(:size => 3) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    pool.each do |conn|
+      conn.do_work("id_#{conn.object_id}")
+    end
+
+    assert_equal recorders.map {|r| "id_#{r.object_id}"}, recorders.map { |r| r.calls }.flatten.uniq
+  end
+
+  def test_sizing
+    pool = ConnectionPool.new(:size => 0) { rand(2) == 1 }
+    assert_equal 0, pool.size
+    assert_equal true, pool.empty?
+
+    pool.size = 5
+    assert_equal 5, pool.size
+
+    trues  = pool.count(true)
+    falses = pool.count(false)
+    assert_equal 5, trues + falses
+
+    pool.size = 2
+    assert_equal 2, pool.size
+
+    recorders = []
+
+    pool = ConnectionPool.new(:size => 1) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    pool.resize(3) { |conn| conn.do_work("stuff") }
+    assert_equal 3, pool.size
+    assert_equal ['stuff'] * 2, recorders.map(&:calls).flatten
+  end
+
   def test_shutdown_is_executed_for_all_connections
     recorders = []
 

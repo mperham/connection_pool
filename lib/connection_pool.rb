@@ -33,19 +33,17 @@ require 'connection_pool/timed_stack'
 class ConnectionPool
   DEFAULTS = {size: 5, timeout: 5}
 
-  def self.wrap(options, &block)
-    Wrapper.new(options, &block)
-  end
+  include Enumerable
 
   def initialize(options = {}, &block)
     raise ArgumentError, 'Connection pool requires a block' unless block
 
     options = DEFAULTS.merge(options)
 
-    @size = options.fetch(:size)
+    size = options.fetch(:size)
     @timeout = options.fetch(:timeout)
 
-    @available = TimedStack.new(@size, &block)
+    @available = TimedStack.new(size, &block)
     @key = :"current-#{@available.object_id}"
   end
 
@@ -83,6 +81,32 @@ class ConnectionPool
 
   def shutdown(&block)
     @available.shutdown(&block)
+  end
+
+  def empty?
+    @available.empty?
+  end
+
+  def length
+    @available.length
+  end
+  alias_method :size, :length
+
+  def count(*args, &block)
+    @available.count(*args, &block)
+  end
+
+  def resize(new_size, &block)
+    @available.resize new_size, &block
+  end
+  alias_method :size=, :resize
+
+  def each(&block)
+    @available.each(&block)
+  end
+
+  def self.wrap(options, &block)
+    Wrapper.new(options, &block)
   end
 
   class Wrapper < ::BasicObject
