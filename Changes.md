@@ -1,10 +1,12 @@
 1.2.0
+-----
 
-- New `with(options)` and `checkout(options)` variant. 
- 
-  Can pass in options hash to with and checkout methods. First argument
-  is ':timeout' which will override. In future more could be added. Will
-  not break current applications
+- Add `with(options)` and `checkout(options)`. [mattcamuto]
+  Allows the caller to override the pool timeout.
+```ruby
+@pool.with(:timeout => 2) do |conn|
+end
+```
 
 1.1.0
 -----
