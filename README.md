@@ -79,6 +79,20 @@ end
 Once you've ported your entire system to use `with`, you can simply
 remove ::Wrapper and use a simple, fast ConnectionPool.
 
+ReSetting a connection
+--------------
+
+Redis and other connections, will often have a connection parameter changed.  
+Use `reset` to insure that the connection is in a pre-defined state 
+and does not have artifacts from the last usage.
+
+```ruby
+$redis = ConnectionPool::Wrapper.new(:size => 5, :timeout => 3) { Redis.connect }
+$redis.reset do | redis | 
+  redis.select 0
+end
+```
+
 Author
 --------------
 

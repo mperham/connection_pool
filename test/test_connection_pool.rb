@@ -4,8 +4,12 @@ require 'helper'
 class TestConnectionPool < Minitest::Test
 
   class NetworkConnection
+
+    attr_accessor :state
+
     def initialize
       @x = 0
+      @state = :clean
     end
 
     def do_something
@@ -75,6 +79,21 @@ class TestConnectionPool < Minitest::Test
     sleep 0.05
     pool.with do |conn|
       refute_nil conn
+    end
+  end
+
+  def test_re_initialize
+    pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
+    pool.reset do | connection |
+      connection.state = :clean
+    end
+
+    pool.with do | connection | 
+      connection.state = :dirty
+    end
+
+    pool.with do | connection | 
+      assert :clean, connection.state
     end
   end
   

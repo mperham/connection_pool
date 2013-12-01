@@ -47,6 +47,11 @@ class ConnectionPool
 
     @available = TimedStack.new(@size, &block)
     @key = :"current-#{@available.object_id}"
+    @reset = nil
+  end
+
+  def reset(&block) 
+    @reset = block
   end
 
   def with(options = {})
@@ -69,6 +74,10 @@ class ConnectionPool
     end
 
     stack.push conn
+
+    # this code will restore a connection to preset defaults
+    @reset.call(conn) if @reset
+
     conn
   end
 
