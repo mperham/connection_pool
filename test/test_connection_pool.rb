@@ -24,6 +24,10 @@ class TestConnectionPool < Minitest::Test
       @x
     end
 
+    def query(*args)
+      @x += 1
+    end
+
     def respond_to?(method_id, *args)
       method_id == :do_magic || super(method_id, *args)
     end
@@ -77,8 +81,8 @@ class TestConnectionPool < Minitest::Test
       refute_nil conn
     end
   end
-  
-  def test_with_timeout_override 
+
+  def test_with_timeout_override
     pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
     Thread.new do
       pool.with do |net|
@@ -89,10 +93,10 @@ class TestConnectionPool < Minitest::Test
     sleep 0.05
     assert_raises Timeout::Error do
       pool.with { |net| net.do_something }
-    end    
+    end
     pool.with(:timeout => 0.4) do |conn|
       refute_nil conn
-    end     
+    end
   end
 
   def test_checkout_timeout_override
@@ -102,25 +106,27 @@ class TestConnectionPool < Minitest::Test
         net.do_something
         sleep 0.2
       end
-    end 
+    end
     sleep 0.05
     assert_raises Timeout::Error do
-      pool.checkout 
+      pool.checkout
     end
-    assert pool.checkout :timeout => 0.3    
+    assert pool.checkout :timeout => 0.3
   end
-  
+
   def test_passthru
     pool = ConnectionPool.wrap(:timeout => 0.1, :size => 1) { NetworkConnection.new }
     assert_equal 1, pool.do_something
     assert_equal 2, pool.do_something
     assert_equal 5, pool.do_something_with_block { 3 }
     assert_equal 6, pool.with { |net| net.fast }
+    assert_equal 7, pool.query('hey')
   end
 
   def test_passthru_respond_to
     pool = ConnectionPool.wrap(:timeout => 0.1, :size => 1) { NetworkConnection.new }
     assert pool.respond_to?(:with)
+    assert pool.respond_to?(:query)
     assert pool.respond_to?(:do_something)
     assert pool.respond_to?(:do_magic)
     refute pool.respond_to?(:do_lots_of_magic)
