@@ -95,6 +95,16 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
+  def test_checkout
+    pool = ConnectionPool.new(:size => 1) { NetworkConnection.new }
+
+    conn = pool.checkout
+
+    assert_kind_of NetworkConnection, conn
+
+    assert_same conn, pool.checkout
+  end
+
   def test_checkout_timeout_override
     pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
     Thread.new do
