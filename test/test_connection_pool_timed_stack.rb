@@ -24,6 +24,15 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop
+    object = Object.new
+    @stack.push object
+
+    popped = @stack.pop
+
+    assert_same object, popped
+  end
+
+  def test_pop_empty
     e = assert_raises Timeout::Error do
       @stack.pop 0.0000001
     end
