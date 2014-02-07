@@ -7,20 +7,20 @@ class TestConnectionPoolTimedStack < Minitest::Test
     @stack = ConnectionPool::TimedStack.new { Object.new }
   end
 
-  def test_push
-    assert_empty @stack
-
-    @stack.push Object.new
-
-    refute_empty @stack
-  end
-
   def test_pop
     e = assert_raises Timeout::Error do
       @stack.pop 0.0000001
     end
 
     assert_match %r%Waited [\de.-]+ sec%, e.message
+  end
+
+  def test_push
+    assert_empty @stack
+
+    @stack.push Object.new
+
+    refute_empty @stack
   end
 
 end
