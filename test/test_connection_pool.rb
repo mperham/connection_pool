@@ -95,16 +95,6 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
-  def test_checkout
-    pool = ConnectionPool.new(:size => 1) { NetworkConnection.new }
-
-    conn = pool.checkout
-
-    assert_kind_of NetworkConnection, conn
-
-    assert_same conn, pool.checkout
-  end
-
   def test_checkin
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
     conn = pool.checkout
@@ -124,6 +114,16 @@ class TestConnectionPool < Minitest::Test
     end
 
     assert_same conn, t2.value
+  end
+
+  def test_checkout
+    pool = ConnectionPool.new(:size => 1) { NetworkConnection.new }
+
+    conn = pool.checkout
+
+    assert_kind_of NetworkConnection, conn
+
+    assert_same conn, pool.checkout
   end
 
   def test_checkout_multithread
