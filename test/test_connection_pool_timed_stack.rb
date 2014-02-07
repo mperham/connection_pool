@@ -40,6 +40,20 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_match %r%Waited [\de.-]+ sec%, e.message
   end
 
+  def test_pop_wait
+    thread = Thread.start do
+      @stack.pop
+    end
+
+    Thread.pass while thread.status == 'run'
+
+    object = Object.new
+
+    @stack.push object
+
+    assert_same object, thread.value
+  end
+
   def test_pop_shutdown
     @stack.shutdown do end
 
