@@ -105,6 +105,27 @@ class TestConnectionPool < Minitest::Test
     assert_same conn, pool.checkout
   end
 
+  def test_checkin
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
+    conn = pool.checkout
+
+    t1 = Thread.new do
+      pool.checkout
+    end
+
+    assert_raises Timeout::Error do
+      t1.join
+    end
+
+    pool.checkin
+
+    t2 = Thread.new do
+      pool.checkout
+    end
+
+    assert_same conn, t2.value
+  end
+
   def test_checkout_multithread
     pool = ConnectionPool.new(:size => 2) { NetworkConnection.new }
     conn = pool.checkout
