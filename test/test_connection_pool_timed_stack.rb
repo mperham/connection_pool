@@ -34,10 +34,10 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
   def test_pop_empty
     e = assert_raises Timeout::Error do
-      @stack.pop 0.0000001
+      @stack.pop 0
     end
 
-    assert_match %r%Waited [\de.-]+ sec%, e.message
+    assert_equal 'Waited 0 sec', e.message
   end
 
   def test_pop_wait
