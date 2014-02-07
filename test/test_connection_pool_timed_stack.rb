@@ -39,5 +39,23 @@ class TestConnectionPoolTimedStack < Minitest::Test
     refute_empty @stack
   end
 
+  def test_shutdown
+    @stack.push Object.new
+
+    called = []
+
+    @stack.shutdown do |object|
+      called << object
+    end
+
+    refute_empty called
+    assert_empty @stack
+
+    @stack.push Object.new
+
+    assert_equal 2, called.length
+    assert_empty @stack
+  end
+
 end
 
