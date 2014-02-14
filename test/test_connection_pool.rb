@@ -245,4 +245,13 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
   end
+
+  def test_wrapper_respond_to_eh
+    wrapper = ConnectionPool::Wrapper.new { NetworkConnection.new }
+
+    assert_respond_to wrapper, :with
+
+    assert_respond_to wrapper, :fast
+    refute_respond_to wrapper, :"nonexistent method"
+  end
 end
