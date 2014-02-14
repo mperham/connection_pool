@@ -260,4 +260,18 @@ class TestConnectionPool < Minitest::Test
     assert_respond_to wrapper, :fast
     refute_respond_to wrapper, :"nonexistent method"
   end
+
+  def test_wrapper_with
+    wrapper = ConnectionPool::Wrapper.new(:size => 1) { Object.new }
+
+    wrapper.with do
+      assert_raises Timeout::Error do
+        Thread.new do
+          wrapper.with { flunk 'connection checked out :(' }
+        end.join
+      end
+    end
+
+    assert Thread.new { wrapper.with { } }.join
+  end
 end
