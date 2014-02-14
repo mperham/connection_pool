@@ -78,6 +78,18 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
+  def test_with
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+
+    pool.with do
+      assert_raises Timeout::Error do
+        Thread.new { pool.checkout }.join
+      end
+    end
+
+    assert Thread.new { pool.checkout }.join
+  end
+
   def test_with_timeout_override
     pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
     Thread.new do
