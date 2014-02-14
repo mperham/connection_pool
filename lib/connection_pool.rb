@@ -74,6 +74,8 @@ class ConnectionPool
 
   def checkin
     stack = ::Thread.current[@key]
+    return unless stack
+
     conn = stack.pop
     if stack.empty?
       @available << conn

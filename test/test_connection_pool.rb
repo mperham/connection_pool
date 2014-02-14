@@ -78,6 +78,18 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
+  def test_with
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+
+    pool.with do
+      assert_raises Timeout::Error do
+        Thread.new { pool.checkout }.join
+      end
+    end
+
+    assert Thread.new { pool.checkout }.join
+  end
+
   def test_with_timeout_override
     pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
     Thread.new do
@@ -92,6 +104,89 @@ class TestConnectionPool < Minitest::Test
     end
     pool.with(:timeout => 0.4) do |conn|
       refute_nil conn
+    end
+  end
+
+  def test_checkin
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
+    conn = pool.checkout
+
+    t1 = Thread.new do
+      pool.checkout
+    end
+
+    assert_raises Timeout::Error do
+      t1.join
+    end
+
+    pool.checkin
+
+    t2 = Thread.new do
+      pool.checkout
+    end
+
+    assert_same conn, t2.value
+  end
+
+  def test_checkin_no_checkout
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+
+    pool.checkin
+
+    Thread.new do
+      assert pool.checkout
+    end.join
+
+    assert_raises Timeout::Error do
+      pool.checkout
+    end
+  end
+
+  def test_checkin_twice
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+
+    pool.checkout
+    pool.checkout
+
+    pool.checkin
+
+    assert_raises Timeout::Error do
+      Thread.new do
+        pool.checkout
+      end.join
+    end
+
+    pool.checkin
+
+    assert Thread.new { pool.checkout }.join
+  end
+
+  def test_checkout
+    pool = ConnectionPool.new(:size => 1) { NetworkConnection.new }
+
+    conn = pool.checkout
+
+    assert_kind_of NetworkConnection, conn
+
+    assert_same conn, pool.checkout
+  end
+
+  def test_checkout_multithread
+    pool = ConnectionPool.new(:size => 2) { NetworkConnection.new }
+    conn = pool.checkout
+
+    t = Thread.new do
+      pool.checkout
+    end
+
+    refute_same conn, t.value
+  end
+
+  def test_checkout_timeout
+    pool = ConnectionPool.new(:timeout => 0, :size => 0) { Object.new }
+
+    assert_raises Timeout::Error do
+      pool.checkout
     end
   end
 
