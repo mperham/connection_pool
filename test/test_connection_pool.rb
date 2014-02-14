@@ -340,4 +340,33 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
   end
+
+  def test_wrapper_method_missing
+    wrapper = ConnectionPool::Wrapper.new { NetworkConnection.new }
+
+    assert_equal 1, wrapper.fast
+  end
+
+  def test_wrapper_respond_to_eh
+    wrapper = ConnectionPool::Wrapper.new { NetworkConnection.new }
+
+    assert_respond_to wrapper, :with
+
+    assert_respond_to wrapper, :fast
+    refute_respond_to wrapper, :"nonexistent method"
+  end
+
+  def test_wrapper_with
+    wrapper = ConnectionPool::Wrapper.new(:size => 1) { Object.new }
+
+    wrapper.with do
+      assert_raises Timeout::Error do
+        Thread.new do
+          wrapper.with { flunk 'connection checked out :(' }
+        end.join
+      end
+    end
+
+    assert Thread.new { wrapper.with { } }.join
+  end
 end
