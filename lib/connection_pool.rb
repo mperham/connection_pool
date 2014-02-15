@@ -33,6 +33,9 @@ require 'connection_pool/timed_stack'
 class ConnectionPool
   DEFAULTS = {size: 5, timeout: 5}
 
+  class Error < RuntimeError
+  end
+
   def self.wrap(options, &block)
     Wrapper.new(options, &block)
   end
@@ -74,7 +77,8 @@ class ConnectionPool
 
   def checkin
     stack = ::Thread.current[@key]
-    return unless stack
+    raise ConnectionPool::Error, 'no connections are checked out' if
+      !stack || stack.empty?
 
     conn = stack.pop
     if stack.empty?
@@ -95,9 +99,12 @@ class ConnectionPool
     end
 
     def with
-      yield @pool.checkout
-    ensure
-      @pool.checkin
+      conn = @pool.checkout
+      begin
+        yield conn
+      ensure
+        @pool.checkin
+      end
     end
 
     def pool_shutdown(&block)
