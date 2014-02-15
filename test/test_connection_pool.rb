@@ -364,7 +364,7 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_wrapper_with
-    wrapper = ConnectionPool::Wrapper.new(:size => 1) { Object.new }
+    wrapper = ConnectionPool::Wrapper.new(:timeout => 0, :size => 1) { Object.new }
 
     wrapper.with do
       assert_raises Timeout::Error do
