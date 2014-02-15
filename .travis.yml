@@ -1,6 +1,4 @@
 ---
-before_script:
-- gem install minitest --no-rdoc --no-ri
 language: ruby
 notifications:
   email:
@@ -9,4 +7,4 @@ rvm:
 - 1.9.3
 - 2.0.0
 - 2.1.0
-script: rake travis
+script: rake test
