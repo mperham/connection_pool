@@ -60,19 +60,22 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_timeout
-    pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
-    Thread.new do
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
+    thread = Thread.new do
       pool.with do |net|
         net.do_something
-        sleep 0.1
+        sleep 0.01
       end
     end
-    sleep 0.05
+
+    Thread.pass while thread.status == 'run'
+
     assert_raises Timeout::Error do
       pool.with { |net| net.do_something }
     end
 
-    sleep 0.05
+    thread.join
+
     pool.with do |conn|
       refute_nil conn
     end
