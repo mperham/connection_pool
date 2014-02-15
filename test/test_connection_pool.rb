@@ -238,14 +238,16 @@ class TestConnectionPool < Minitest::Test
 
   def test_heavy_threading
     pool = ConnectionPool.new(:timeout => 0.5, :size => 3) { NetworkConnection.new }
-    20.times do
+
+    threads = (0...20).map do
       Thread.new do
         pool.with do |net|
-          sleep 0.05
+          sleep 0.01
         end
       end
     end
-    sleep 0.5
+
+    threads.map { |thread| thread.join }
   end
 
   def test_reuses_objects_when_pool_not_saturated
