@@ -128,7 +128,7 @@ class TestConnectionPool < Minitest::Test
     assert_same conn, t2.value
   end
 
-  def test_checkin_no_checkout
+  def test_checkin_never_checkout
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
 
     e = assert_raises ConnectionPool::Error do
@@ -136,6 +136,17 @@ class TestConnectionPool < Minitest::Test
     end
 
     assert_equal 'no connections are checked out', e.message
+  end
+
+  def test_checkin_no_current_checkout
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+
+    pool.checkout
+    pool.checkin
+
+    assert_raises ConnectionPool::Error do
+      pool.checkin
+    end
   end
 
   def test_checkin_twice
