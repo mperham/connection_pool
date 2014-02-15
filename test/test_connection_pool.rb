@@ -285,7 +285,7 @@ class TestConnectionPool < Minitest::Test
         r_inner.do_work('inner')
       end
 
-      sleep 0.1
+      Thread.pass
 
       r_outer.do_work('outer')
     end
