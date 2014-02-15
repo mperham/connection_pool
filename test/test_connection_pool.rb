@@ -202,18 +202,22 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_checkout_timeout_override
-    pool = ConnectionPool.new(:timeout => 0.05, :size => 1) { NetworkConnection.new }
-    Thread.new do
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
+
+    thread = Thread.new do
       pool.with do |net|
         net.do_something
-        sleep 0.2
+        sleep 0.01
       end
     end
-    sleep 0.05
+
+    Thread.pass while thread.status == 'run'
+
     assert_raises Timeout::Error do
       pool.checkout
     end
-    assert pool.checkout :timeout => 0.3
+
+    assert pool.checkout :timeout => 0.1
   end
 
   def test_passthru
