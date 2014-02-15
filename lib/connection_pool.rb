@@ -77,8 +77,8 @@ class ConnectionPool
 
   def checkin
     stack = ::Thread.current[@key]
-    raise ConnectionPool::Error, 'no connections are checked out' unless
-      stack and not stack.empty?
+    raise ConnectionPool::Error, 'no connections are checked out' if
+      !stack || stack.empty?
 
     conn = stack.pop
     if stack.empty?
