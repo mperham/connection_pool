@@ -40,6 +40,15 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_equal 'Waited 0 sec', e.message
   end
 
+  def test_pop_full
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    popped = stack.pop
+
+    refute_nil popped
+    assert_empty stack
+  end
+
   def test_pop_wait
     thread = Thread.start do
       @stack.pop
