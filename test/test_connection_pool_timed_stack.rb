@@ -29,6 +29,12 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_equal 1, @stack.length
   end
 
+  def test_length_full
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    assert_equal 1, stack.length
+  end
+
   def test_pop
     object = Object.new
     @stack.push object
