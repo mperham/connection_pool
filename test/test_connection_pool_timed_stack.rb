@@ -15,6 +15,12 @@ class TestConnectionPoolTimedStack < Minitest::Test
     refute_empty @stack
   end
 
+  def test_empty_eh_full
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    refute_empty stack
+  end
+
   def test_length
     assert_equal 0, @stack.length
 
