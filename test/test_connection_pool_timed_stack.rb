@@ -8,29 +8,29 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_empty_eh
-    assert_empty @stack
-
-    @stack.push Object.new
-
-    refute_empty @stack
-  end
-
-  def test_empty_eh_full
     stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    refute_empty stack
+
+    popped = stack.pop
+
+    assert_empty stack
+
+    stack.push popped
 
     refute_empty stack
   end
 
   def test_length
-    assert_equal 0, @stack.length
-
-    @stack.push Object.new
-
-    assert_equal 1, @stack.length
-  end
-
-  def test_length_full
     stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    assert_equal 1, stack.length
+
+    popped = stack.pop
+
+    assert_equal 0, stack.length
+
+    stack.push popped
 
     assert_equal 1, stack.length
   end
@@ -84,11 +84,13 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_push
-    assert_empty @stack
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
 
-    @stack.push Object.new
+    conn = stack.pop
 
-    refute_empty @stack
+    stack.push conn
+
+    refute_empty stack
   end
 
   def test_push_shutdown
