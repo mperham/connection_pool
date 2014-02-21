@@ -10,6 +10,7 @@ class ConnectionPool::TimedStack
     @created = 0
     @enqueued = 0
     @ques = Hash.new { |h, k| h[k] = [] }
+    @lru = {}
     @max = size
     @mutex = Mutex.new
     @resource = ConditionVariable.new
@@ -38,10 +39,21 @@ class ConnectionPool::TimedStack
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
         unless @ques[connection_args].empty?
           @enqueued -= 1
+          lru_update connection_args
           return @ques[connection_args].pop
         end
-        unless @created == @max
+
+        if @created >= @max && @enqueued >= 1
+          oldest, = @lru.first
+          @lru.delete oldest
+          @ques[oldest].pop
+
+          @created -= 1
+        end
+
+        if @created < @max
           @created += 1
+          lru_update connection_args
           return @create_block.call(connection_args)
         end
         to_wait = deadline - Time.now
@@ -74,5 +86,10 @@ class ConnectionPool::TimedStack
 
   def length
     @max - @created + @enqueued
+  end
+
+  def lru_update(connection_args) # :nodoc:
+    @lru.delete connection_args
+    @lru[connection_args] = true
   end
 end
