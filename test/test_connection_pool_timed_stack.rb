@@ -2,6 +2,14 @@ require_relative 'helper'
 
 class TestConnectionPoolTimedStack < Minitest::Test
 
+  class Connection
+    attr_reader :host
+
+    def initialize(host)
+      @host = host
+    end
+  end
+
   def setup
     @stack = ConnectionPool::TimedStack.new { Object.new }
   end
@@ -82,6 +90,24 @@ class TestConnectionPoolTimedStack < Minitest::Test
     end
   end
 
+  def test_pop_type
+    stack = ConnectionPool::TimedStack.new(2) { |host| Connection.new(host) }
+
+    conn = stack.pop nil, 'a.example'
+
+    assert_equal 'a.example', conn.host
+
+    conn = stack.pop nil, 'b.example'
+
+    assert_equal 'b.example', conn.host
+
+    stack.push conn, 'b.example'
+
+    assert_raises Timeout::Error do
+      conn = stack.pop 0, 'a.example'
+    end
+  end
+
   def test_push
     stack = ConnectionPool::TimedStack.new(1) { Object.new }
 
@@ -103,6 +129,16 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
     refute_empty called
     assert_empty @stack
+  end
+
+  def test_push_type
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    conn = stack.pop nil, 'a'
+
+    stack.push conn, 'a'
+
+    refute_empty stack
   end
 
   def test_shutdown
