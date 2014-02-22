@@ -434,6 +434,18 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { wrapper.with { } }.join
   end
 
+  def test_wrapper_with_connection_args
+    wrapper = ConnectionPool::Wrapper.new(:timeout => 0, :size => 1) { Object.new }
+
+    connection = nil
+
+    wrapper.with('a.example') do |conn|
+      connection = conn
+    end
+
+    assert connection
+  end
+
   class ConnWithEval
     def eval(arg)
       "eval'ed #{arg}"
@@ -445,5 +457,4 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal "eval'ed 1", wrapper.eval(1)
   end
-
 end

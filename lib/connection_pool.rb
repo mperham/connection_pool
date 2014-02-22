@@ -102,8 +102,8 @@ class ConnectionPool
       @pool = ::ConnectionPool.new(options, &block)
     end
 
-    def with
-      conn = @pool.checkout
+    def with(connection_args = nil)
+      conn = @pool.checkout connection_args
       begin
         yield conn
       ensure
