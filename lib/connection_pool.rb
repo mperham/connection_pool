@@ -52,8 +52,10 @@ class ConnectionPool
     @key = :"current-#{@available.object_id}"
   end
 
-  def with(options = {})
-    conn = checkout(options)
+  def with(connection_args = nil, options = {})
+    options, connection_args = connection_args, nil if Hash === connection_args
+
+    conn = checkout(connection_args, options)
     begin
       yield conn
     ensure
@@ -61,17 +63,19 @@ class ConnectionPool
     end
   end
 
-  def checkout(options = {})
+  def checkout(connection_args = nil, options = {})
+    options, connection_args = connection_args, nil if Hash === connection_args
+
     stack = ::Thread.current[@key] ||= []
 
     if stack.empty?
       timeout = options[:timeout] || @timeout
-      conn = @available.pop(timeout)
+      conn = @available.pop(timeout, connection_args)
     else
-      conn = stack.last
+      conn, connection_args = stack.last
     end
 
-    stack.push conn
+    stack.push [conn, connection_args]
     conn
   end
 
@@ -80,9 +84,9 @@ class ConnectionPool
     raise ConnectionPool::Error, 'no connections are checked out' if
       !stack || stack.empty?
 
-    conn = stack.pop
+    conn, connection_args = stack.pop
     if stack.empty?
-      @available << conn
+      @available.push conn, connection_args
     end
     nil
   end
