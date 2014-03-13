@@ -1,3 +1,9 @@
+2.0.0
+-----
+
+- The connection pool is now lazy.  Connections will only be created as they
+  are needed but will still be retained until the pool is shut down.
+
 1.2.0
 -----
 
