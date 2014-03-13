@@ -41,6 +41,20 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
+  def use_pool pool, size
+    (0...size).map do
+      Thread.new do
+        pool.with do sleep end
+      end
+    end.each do |thread|
+      Thread.pass until thread.status == 'sleep'
+    end.map do |thread|
+      thread.kill
+      Thread.pass while thread.alive?
+    end
+
+  end
+
   def test_basic_multithreaded_usage
     pool = ConnectionPool.new(:size => 5) { NetworkConnection.new }
     threads = []
@@ -302,6 +316,8 @@ class TestConnectionPool < Minitest::Test
       Recorder.new.tap { |r| recorders << r }
     end
 
+    use_pool pool, 3
+
     pool.shutdown do |recorder|
       recorder.do_work("shutdown")
     end
@@ -326,13 +342,15 @@ class TestConnectionPool < Minitest::Test
       Recorder.new.tap { |r| recorders << r }
     end
 
+    use_pool pool, 3
+
     pool.checkout
 
     pool.shutdown do |recorder|
       recorder.do_work("shutdown")
     end
 
-    assert_equal [["shutdown"], ["shutdown"], []], recorders.map { |r| r.calls }
+    assert_equal [[], ["shutdown"], ["shutdown"]], recorders.map { |r| r.calls }.sort
 
     pool.checkin
 
@@ -353,6 +371,8 @@ class TestConnectionPool < Minitest::Test
     wrapper = ConnectionPool::Wrapper.new(:size => 3) do
       Recorder.new.tap { |r| recorders << r }
     end
+
+    use_pool wrapper, 3
 
     wrapper.pool_shutdown do |recorder|
       recorder.do_work("shutdown")

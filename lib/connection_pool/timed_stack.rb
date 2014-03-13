@@ -5,8 +5,11 @@ class ConnectionPool::PoolShuttingDownError < RuntimeError; end
 
 class ConnectionPool::TimedStack
 
-  def initialize(size = 0)
-    @que = Array.new(size) { yield }
+  def initialize(size = 0, &block)
+    @create_block = block
+    @created = 0
+    @que = []
+    @max = size
     @mutex = Mutex.new
     @resource = ConditionVariable.new
     @shutdown_block = nil
@@ -31,6 +34,10 @@ class ConnectionPool::TimedStack
       loop do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
         return @que.pop unless @que.empty?
+        unless @created == @max
+          @created += 1
+          return @create_block.call
+        end
         to_wait = deadline - Time.now
         raise Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
         @resource.wait(@mutex, to_wait)
@@ -53,10 +60,10 @@ class ConnectionPool::TimedStack
   end
 
   def empty?
-    @que.empty?
+    (@created - @que.length) >= @max
   end
 
   def length
-    @que.length
+    @max - @created + @que.length
   end
 end
