@@ -1,5 +1,4 @@
-Thread.abort_on_exception = true
-require 'helper'
+require_relative 'helper'
 
 class TestConnectionPool < Minitest::Test
 
