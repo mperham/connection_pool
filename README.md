@@ -15,14 +15,14 @@ Create a pool of objects to share amongst the fibers or threads in your Ruby
 application:
 
 ``` ruby
-@memcached = ConnectionPool.new(:size => 5, :timeout => 5) { Dalli::Client.new }
+$memcached = ConnectionPool.new(size: 5, timeout: 5) { Dalli::Client.new }
 ```
 
 Then use the pool in your application:
 
 ``` ruby
-@memcached.with do |dalli|
-  dalli.get('some-count')
+$memcached.with do |conn|
+  conn.get('some-count')
 end
 ```
 
@@ -33,8 +33,8 @@ until one becomes available.  If no object is available within `:timeout` second
 Optionally, you can specify a timeout override using the with-block semantics:
 
 ``` ruby
-@memcached.with(:timeout => 2.0) do |dalli|
-  dalli.get('some-count')
+$memcached.with(timeout: 2.0) do |conn|
+  conn.get('some-count')
 end
 ```
 
@@ -48,7 +48,7 @@ You can use `ConnectionPool::Wrapper` to wrap a single global connection,
 making it easier to port your connection code over time:
 
 ``` ruby
-$redis = ConnectionPool::Wrapper.new(:size => 5, :timeout => 3) { Redis.connect }
+$redis = ConnectionPool::Wrapper.new(size: 5, timeout: 3) { Redis.connect }
 $redis.sadd('foo', 1)
 $redis.smembers('foo')
 ```
