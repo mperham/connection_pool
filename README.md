@@ -1,4 +1,4 @@
-`connection_pool`
+connection\_pool
 =================
 
 Generic connection pooling for Ruby.
@@ -72,7 +72,7 @@ Once you've ported your entire system to use `with`, you can simply remove
 Notes
 -----
 
-- Connections are lazily created as they are needed.
+- Connections are lazily created as needed.
 - There is no provision for repairing or checking the health of a connection;
   connections should be self-repairing.  This is true of the Dalli and Redis
   clients.
