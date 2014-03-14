@@ -15,7 +15,7 @@ Install
 Notes
 ------------
 
-- Connections are eager created when the pool is created.
+- Connections are lazily created as they are needed.
 - There is no provision for repairing or checking the health of a
   connection; connections should be self-repairing.  This is
 true of the dalli and redis clients.
