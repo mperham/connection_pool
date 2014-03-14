@@ -8,22 +8,6 @@ This is a generic connection pool that can be used with anything, e.g. Redis,
 Dalli and other Ruby network clients.
 
 
-Install
--------
-
-```
-$ gem install connection_pool
-```
-
-Notes
------
-
-- Connections are lazily created as they are needed.
-- There is no provision for repairing or checking the health of a
-  connection; connections should be self-repairing.  This is
-  true of the Dalli and Redis clients.
-
-
 Usage
 -----
 
@@ -83,6 +67,24 @@ end
 
 Once you've ported your entire system to use `with`, you can simply remove
 `Wrapper` and use the simpler and faster `ConnectionPool`.
+
+
+Notes
+-----
+
+- Connections are lazily created as they are needed.
+- There is no provision for repairing or checking the health of a connection;
+  connections should be self-repairing.  This is true of the Dalli and Redis
+  clients.
+
+
+Install
+-------
+
+```
+$ gem install connection_pool
+```
+
 
 Author
 ------
