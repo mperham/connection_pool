@@ -51,7 +51,6 @@ class TestConnectionPool < Minitest::Test
       thread.kill
       Thread.pass while thread.alive?
     end
-
   end
 
   def test_basic_multithreaded_usage
@@ -407,5 +406,17 @@ class TestConnectionPool < Minitest::Test
     end
 
     assert Thread.new { wrapper.with { } }.join
+  end
+
+  class ConnWithEval
+    def eval(arg)
+      "eval'ed #{arg}"
+    end
+  end
+
+  def test_wrapper_kernel_methods
+    wrapper = ConnectionPool::Wrapper.new(timeout: 0, size: 1) { ConnWithEval.new }
+
+    assert_equal "eval'ed 1", wrapper.eval(1)
   end
 end
