@@ -40,8 +40,8 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
-  def use_pool pool, size
-    (0...size).map do
+  def use_pool(pool, size)
+    Array.new(size) do
       Thread.new do
         pool.with do sleep end
       end
@@ -55,9 +55,9 @@ class TestConnectionPool < Minitest::Test
 
   def test_basic_multithreaded_usage
     pool = ConnectionPool.new(:size => 5) { NetworkConnection.new }
-    threads = []
-    15.times do
-      threads << Thread.new do
+
+    threads = Array.new(15) do
+      Thread.new do
         pool.with do |net|
           net.do_something
         end
@@ -262,7 +262,7 @@ class TestConnectionPool < Minitest::Test
   def test_heavy_threading
     pool = ConnectionPool.new(:timeout => 0.5, :size => 3) { NetworkConnection.new }
 
-    threads = (0...20).map do
+    threads = Array.new(20) do
       Thread.new do
         pool.with do |net|
           sleep 0.01
@@ -419,4 +419,5 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal "eval'ed 1", wrapper.eval(1)
   end
+
 end
