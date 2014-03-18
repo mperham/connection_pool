@@ -20,7 +20,7 @@ class ConnectionPool::TimedStack
       if @shutdown_block
         @shutdown_block.call(obj)
       else
-        @que.push obj
+        store_connection obj
       end
 
       @resource.broadcast
@@ -33,11 +33,11 @@ class ConnectionPool::TimedStack
     @mutex.synchronize do
       loop do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
-        return @que.pop unless @que.empty?
-        unless @created == @max
-          @created += 1
-          return @create_block.call
-        end
+        return fetch_connection if connection_stored?
+
+        connection = try_create
+        return connection if connection
+
         to_wait = deadline - Time.now
         raise Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
         @resource.wait(@mutex, to_wait)
@@ -52,10 +52,7 @@ class ConnectionPool::TimedStack
       @shutdown_block = block
       @resource.broadcast
 
-      @que.size.times do
-        conn = @que.pop
-        block.call(conn)
-      end
+      shutdown_connections
     end
   end
 
@@ -65,5 +62,33 @@ class ConnectionPool::TimedStack
 
   def length
     @max - @created + @que.length
+  end
+
+  private
+
+  def connection_stored? # :nodoc:
+    !@que.empty?
+  end
+
+  def fetch_connection # :nodoc:
+    @que.pop
+  end
+
+  def shutdown_connections # :nodoc:
+    while connection_stored?
+      conn = fetch_connection
+      @shutdown_block.call(conn)
+    end
+  end
+
+  def store_connection obj # :nodoc:
+    @que.push obj
+  end
+
+  def try_create # :nodoc:
+    unless @created == @max
+      @created += 1
+      @create_block.call
+    end
   end
 end
