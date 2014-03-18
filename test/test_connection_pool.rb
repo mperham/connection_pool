@@ -3,7 +3,10 @@ require_relative 'helper'
 class TestConnectionPool < Minitest::Test
 
   class NetworkConnection
-    def initialize
+    attr_reader :host
+
+    def initialize(host = nil)
+      @host = host
       @x = 0
     end
 
@@ -105,6 +108,18 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { pool.checkout }.join
   end
 
+  def test_with_connection_args
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+
+    pool.with 'a.example' do
+      assert_raises Timeout::Error do
+        Thread.new { pool.checkout }.join
+      end
+    end
+
+    assert Thread.new { pool.checkout }.join
+  end
+
   def test_with_timeout_override
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
 
@@ -193,6 +208,17 @@ class TestConnectionPool < Minitest::Test
     conn = pool.checkout
 
     assert_kind_of NetworkConnection, conn
+
+    assert_same conn, pool.checkout
+  end
+
+  def test_checkout_connection_args
+    pool = ConnectionPool.new(:size => 1) { |host| NetworkConnection.new(host) }
+
+    conn = pool.checkout 'a.example'
+
+    assert_kind_of NetworkConnection, conn
+    assert_equal 'a.example', conn.host
 
     assert_same conn, pool.checkout
   end
@@ -408,6 +434,18 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { wrapper.with { } }.join
   end
 
+  def test_wrapper_with_connection_args
+    wrapper = ConnectionPool::Wrapper.new(:timeout => 0, :size => 1) { Object.new }
+
+    connection = nil
+
+    wrapper.with('a.example') do |conn|
+      connection = conn
+    end
+
+    assert connection
+  end
+
   class ConnWithEval
     def eval(arg)
       "eval'ed #{arg}"
@@ -419,5 +457,4 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal "eval'ed 1", wrapper.eval(1)
   end
-
 end

@@ -2,6 +2,14 @@ require_relative 'helper'
 
 class TestConnectionPoolTimedStack < Minitest::Test
 
+  class Connection
+    attr_reader :host
+
+    def initialize(host)
+      @host = host
+    end
+  end
+
   def setup
     @stack = ConnectionPool::TimedStack.new { Object.new }
   end
@@ -74,11 +82,47 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_same object, thread.value
   end
 
+  def test_pop_recycle
+    stack = ConnectionPool::TimedStack.new(2) { |host| Connection.new(host) }
+
+    a_conn = stack.pop nil, 'a.example'
+    stack.push a_conn, 'a.example'
+
+    b_conn = stack.pop nil, 'b.example'
+    stack.push b_conn, 'b.example'
+
+    c_conn = stack.pop nil, 'c.example'
+
+    assert_equal 'c.example', c_conn.host
+
+    stack.push c_conn, 'c.example'
+
+    recreated = stack.pop nil, 'a.example'
+
+    refute_same a_conn, recreated
+  end
+
   def test_pop_shutdown
     @stack.shutdown { }
 
     assert_raises ConnectionPool::PoolShuttingDownError do
       @stack.pop
+    end
+  end
+
+  def test_pop_type
+    stack = ConnectionPool::TimedStack.new(2) { |host| Connection.new(host) }
+
+    conn = stack.pop nil, 'a.example'
+
+    assert_equal 'a.example', conn.host
+
+    conn = stack.pop nil, 'b.example'
+
+    assert_equal 'b.example', conn.host
+
+    assert_raises Timeout::Error do
+      conn = stack.pop 0, 'a.example'
     end
   end
 
@@ -103,6 +147,16 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
     refute_empty called
     assert_empty @stack
+  end
+
+  def test_push_type
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    conn = stack.pop nil, 'a'
+
+    stack.push conn, 'a'
+
+    refute_empty stack
   end
 
   def test_shutdown
