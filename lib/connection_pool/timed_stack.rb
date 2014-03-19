@@ -15,12 +15,12 @@ class ConnectionPool::TimedStack
     @shutdown_block = nil
   end
 
-  def push(obj)
+  def push(obj, options = {})
     @mutex.synchronize do
       if @shutdown_block
         @shutdown_block.call(obj)
       else
-        store_connection obj
+        store_connection obj, options
       end
 
       @resource.broadcast
@@ -28,14 +28,15 @@ class ConnectionPool::TimedStack
   end
   alias_method :<<, :push
 
-  def pop(timeout=0.5)
+  def pop(options = {})
+    timeout = options.fetch :timeout, 0.5
     deadline = Time.now + timeout
     @mutex.synchronize do
       loop do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
-        return fetch_connection if connection_stored?
+        return fetch_connection(options) if connection_stored?(options)
 
-        connection = try_create
+        connection = try_create(options)
         return connection if connection
 
         to_wait = deadline - Time.now
@@ -66,26 +67,26 @@ class ConnectionPool::TimedStack
 
   private
 
-  def connection_stored? # :nodoc:
+  def connection_stored?(options = nil) # :nodoc:
     !@que.empty?
   end
 
-  def fetch_connection # :nodoc:
+  def fetch_connection(options = nil) # :nodoc:
     @que.pop
   end
 
-  def shutdown_connections # :nodoc:
-    while connection_stored?
-      conn = fetch_connection
+  def shutdown_connections(options = nil) # :nodoc:
+    while connection_stored?(options)
+      conn = fetch_connection(options)
       @shutdown_block.call(conn)
     end
   end
 
-  def store_connection obj # :nodoc:
+  def store_connection(obj, options = nil) # :nodoc:
     @que.push obj
   end
 
-  def try_create # :nodoc:
+  def try_create(options = nil) # :nodoc:
     unless @created == @max
       @created += 1
       @create_block.call
