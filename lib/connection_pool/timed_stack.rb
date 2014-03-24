@@ -28,8 +28,10 @@ class ConnectionPool::TimedStack
   end
   alias_method :<<, :push
 
-  def pop(options = {})
-    timeout = options.fetch :timeout, 0.5
+  def pop(timeout = 0.5, options = {})
+    options, timeout = timeout, 0.5 if Hash === timeout
+    timeout = options.fetch :timeout, timeout
+
     deadline = Time.now + timeout
     @mutex.synchronize do
       loop do

@@ -51,6 +51,14 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_equal 'Waited 0 sec', e.message
   end
 
+  def test_pop_empty_2_0_compatibility
+    e = assert_raises Timeout::Error do
+      @stack.pop 0
+    end
+
+    assert_equal 'Waited 0 sec', e.message
+  end
+
   def test_pop_full
     stack = ConnectionPool::TimedStack.new(1) { Object.new }
 
