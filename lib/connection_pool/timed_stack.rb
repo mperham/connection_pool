@@ -4,7 +4,14 @@ require 'timeout'
 ##
 # Raised when you attempt to retrieve a connection from a pool that has been
 # shut down.
-#
+
+class ConnectionPool::PoolShuttingDownError < RuntimeError; end
+
+##
+# The TimedStack manages a pool of homogeneous connections (or any resource
+# you wish to manage).  Connections are created lazily up to a given maximum
+# number.
+
 # Examples:
 #
 #    ts = TimedStack.new(1) { MyConnection.new }
@@ -18,13 +25,6 @@ require 'timeout'
 #    conn = ts.pop
 #    ts.pop timeout: 5
 #    #=> raises Timeout::Error after 5 seconds
-
-class ConnectionPool::PoolShuttingDownError < RuntimeError; end
-
-##
-# The TimedStack manages a pool of homogeneous connections (or any resource
-# you wish to manage).  Connections are created lazily up to a given maximum
-# number.
 
 class ConnectionPool::TimedStack
 
