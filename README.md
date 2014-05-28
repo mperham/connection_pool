@@ -68,6 +68,19 @@ end
 Once you've ported your entire system to use `with`, you can simply remove
 `Wrapper` and use the simpler and faster `ConnectionPool`.
 
+You can shut down a ConnectionPool instance once it should no longer be used.
+Further checkout attempts will immediately raise an error but existing checkouts
+will work.
+
+```ruby
+cp = ConnectionPool.new { Redis.new }
+cp.shutdown { |conn| conn.close }
+```
+
+Shutting down a connection pool will block until all connections are checked in and closed.
+Note that shutting down is completely optional; Ruby's garbage collector will reclaim
+unreferenced pools under normal circumstances.
+
 
 Notes
 -----
