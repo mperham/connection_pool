@@ -66,7 +66,7 @@ class ConnectionPool
 
     if stack.empty?
       timeout = options[:timeout] || @timeout
-      conn = @available.pop(timeout)
+      conn = @available.pop(timeout: timeout)
     else
       conn = stack.last
     end
