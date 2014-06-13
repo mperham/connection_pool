@@ -147,6 +147,11 @@ class TestConnectionPool < Minitest::Test
     assert_same conn, t2.value
   end
 
+  def test_returns_value
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+    assert_equal 1, pool.with {|o| 1 }
+  end
+
   def test_checkin_never_checkout
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
 
