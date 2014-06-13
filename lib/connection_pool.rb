@@ -55,7 +55,7 @@ class ConnectionPool
   def with(options = {})
     conn = checkout(options)
     begin
-      yield conn
+      return yield conn
     ensure
       checkin
     end
@@ -101,7 +101,7 @@ class ConnectionPool
     def with
       conn = @pool.checkout
       begin
-        yield conn
+        return yield conn
       ensure
         @pool.checkin
       end
