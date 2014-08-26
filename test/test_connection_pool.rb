@@ -399,6 +399,14 @@ class TestConnectionPool < Minitest::Test
     refute_respond_to wrapper, :"nonexistent method"
   end
 
+  def test_wrapper_method_missing
+    wrapper = ConnectionPool::Wrapper.new { NetworkConnection.new }
+
+    assert_raises NoMethodError do
+      wrapper.an_undefiend_method
+    end
+  end
+
   def test_wrapper_with
     wrapper = ConnectionPool::Wrapper.new(:timeout => 0, :size => 1) { Object.new }
 
