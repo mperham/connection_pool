@@ -98,13 +98,8 @@ class ConnectionPool
       @pool = ::ConnectionPool.new(options, &block)
     end
 
-    def with
-      conn = @pool.checkout
-      begin
-        yield conn
-      ensure
-        @pool.checkin
-      end
+    def with(&block)
+      @pool.with(&block)
     end
 
     def pool_shutdown(&block)
@@ -116,8 +111,18 @@ class ConnectionPool
     end
 
     def method_missing(name, *args, &block)
-      @pool.with do |connection|
-        connection.send(name, *args, &block)
+      if @pool.with { |c| c.respond_to?(name, *args) }
+        instance_eval <<-CODE, __FILE__, __LINE__ + 1
+          def #{name}(*args, &block)
+            with do |connection|
+              connection.send(:#{name}, *args, &block)
+            end
+          end
+
+          self.#{name}(*args, &block)
+        CODE
+      else
+        super
       end
     end
   end
