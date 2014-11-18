@@ -1,3 +1,11 @@
+2.1.0
+------
+
+- Refactoring to better support connection pool subclasses [drbrain,
+  #55]
+- `with` should return value of the last expression [#59]
+
+
 2.0.0
 -----
 
