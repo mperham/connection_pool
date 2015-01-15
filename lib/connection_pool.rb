@@ -121,4 +121,24 @@ class ConnectionPool
       end
     end
   end
+  
+  # Wraps pool and proxies every method to checked out connection.
+  class SimpleConnection < BasicObject
+    def initialize(pool)
+      @pool = pool
+    end
+
+    private
+      def method_missing(name, *args, &block)
+        @pool.with { |x| x.send name, *args, &block }
+      end
+
+      def respond_to_missing?(name, include_all = false)
+        @pool.with { |x| x.respond_to?(name, include_all) }
+      end
+  end
+
+  def simple_connection
+    SimpleConnection.new(self)
+  end
 end
