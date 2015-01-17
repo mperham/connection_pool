@@ -53,11 +53,19 @@ class ConnectionPool
   end
 
   def with(options = {})
+    success = false # hoisted
     conn = checkout(options)
     begin
-      yield conn
+      (yield conn).tap do
+        success = true # means the connection wasn't interrupted
+      end
     ensure
-      checkin
+      if success
+        # everything is roses, we can safely check the connection back in
+        checkin
+      else
+        @available.discard!(pop_connection)
+      end
     end
   end
 
