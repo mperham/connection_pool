@@ -98,13 +98,8 @@ class ConnectionPool
       @pool = ::ConnectionPool.new(options, &block)
     end
 
-    def with
-      conn = @pool.checkout
-      begin
-        yield conn
-      ensure
-        @pool.checkin
-      end
+    def with(&block)
+      @pool.with(&block)
     end
 
     def pool_shutdown(&block)
@@ -112,11 +107,11 @@ class ConnectionPool
     end
 
     def respond_to?(id, *args)
-      METHODS.include?(id) || @pool.with { |c| c.respond_to?(id, *args) }
+      METHODS.include?(id) || with { |c| c.respond_to?(id, *args) }
     end
 
     def method_missing(name, *args, &block)
-      @pool.with do |connection|
+      with do |connection|
         connection.send(name, *args, &block)
       end
     end
