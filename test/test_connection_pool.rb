@@ -53,7 +53,7 @@ class TestConnectionPool < Minitest::Test
   def kill_threads(threads)
     threads.each do |thread|
       thread.kill
-      Thread.pass while thread.alive?
+      thread.join
     end
   end
 
