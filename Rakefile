@@ -1,14 +1,6 @@
-begin
-  require 'bundler'
-  Bundler::GemHelper.install_tasks
-rescue LoadError
-end
+require 'bundler/gem_tasks'
 
 require 'rake/testtask'
-Rake::TestTask.new(:test) do |test|
-  test.libs << 'test'
-  test.warning = true
-  test.pattern = 'test/**/test_*.rb'
-end
+Rake::TestTask.new
 
 task :default => :test

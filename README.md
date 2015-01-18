@@ -1,5 +1,6 @@
 connection\_pool
 =================
+[![Build Status](https://travis-ci.org/mperham/connection_pool.svg)](https://travis-ci.org/mperham/connection_pool)
 
 Generic connection pooling for Ruby.
 

@@ -53,7 +53,7 @@ class TestConnectionPool < Minitest::Test
   def kill_threads(threads)
     threads.each do |thread|
       thread.kill
-      Thread.pass while thread.alive?
+      thread.join
     end
   end
 
@@ -110,7 +110,14 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_with_with_dangerous_timeouts
-    skip('JRuby GC dislikes this test') if RUBY_ENGINE.to_sym == :jruby
+    case RUBY_ENGINE.to_sym
+    when :jruby
+      skip('JRuby GC dislikes this test')
+    when :ruby
+      if RUBY_VERSION == '2.0.0' && RUBY_PATCHLEVEL == 598
+        skip("#{RUBY_VERSION}p#{RUBY_PATCHLEVEL} GC dislikes this test")
+      end
+    end
 
     marker_class = Class.new
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { marker_class.new }
