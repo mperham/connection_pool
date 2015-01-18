@@ -53,12 +53,15 @@ class ConnectionPool
   end
 
   def with(options = {})
-    success = false # hoisted
+    # Connections can become corrupted via Timeout::Error.  Discard
+    # any connection whose usage after checkout does not finish as expected.
+    # See #67
+    success = false
     conn = checkout(options)
     begin
-      (yield conn).tap do
-        success = true # means the connection wasn't interrupted
-      end
+      result = yield conn
+      success = true # means the connection wasn't interrupted
+      result
     ensure
       if success
         # everything is roses, we can safely check the connection back in
