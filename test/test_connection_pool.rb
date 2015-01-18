@@ -130,21 +130,13 @@ class TestConnectionPool < Minitest::Test
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
     conn = pool.checkout
 
-    t1 = Thread.new do
-      pool.checkout
-    end
-
     assert_raises Timeout::Error do
-      t1.join
+      Thread.new { pool.checkout }.join
     end
 
     pool.checkin
 
-    t2 = Thread.new do
-      pool.checkout
-    end
-
-    assert_same conn, t2.value
+    assert_same conn, Thread.new { pool.checkout }.value
   end
 
   def test_returns_value
@@ -353,7 +345,7 @@ class TestConnectionPool < Minitest::Test
       recorder.do_work("shutdown")
     end
 
-    assert_equal [[], ["shutdown"], ["shutdown"]], recorders.map { |r| r.calls }.sort
+    assert_equal [["shutdown"], ["shutdown"], []], recorders.map { |r| r.calls }
 
     pool.checkin
 
