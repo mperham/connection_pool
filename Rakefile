@@ -6,4 +6,4 @@ Rake::TestTask.new
 require 'rubocop/rake_task'
 RuboCop::RakeTask.new
 
-task :default => [:test, :rubocop]
+task default: [:test, :rubocop]

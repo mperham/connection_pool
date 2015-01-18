@@ -27,7 +27,6 @@ class ConnectionPool::PoolShuttingDownError < RuntimeError; end
 #    #=> raises Timeout::Error after 5 seconds
 
 class ConnectionPool::TimedStack
-
   ##
   # Creates a new pool with +size+ connections that are created from the given
   # +block+.
@@ -75,14 +74,14 @@ class ConnectionPool::TimedStack
     deadline = Time.now + timeout
     @mutex.synchronize do
       loop do
-        raise ConnectionPool::PoolShuttingDownError if @shutdown_block
+        fail ConnectionPool::PoolShuttingDownError if @shutdown_block
         return fetch_connection(options) if connection_stored?(options)
 
         connection = try_create(options)
         return connection if connection
 
         to_wait = deadline - Time.now
-        raise Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
+        fail Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
         @resource.wait(@mutex, to_wait)
       end
     end
@@ -93,7 +92,7 @@ class ConnectionPool::TimedStack
   # out.  The +block+ is called once for each connection on the stack.
 
   def shutdown(&block)
-    raise ArgumentError, "shutdown must receive a block" unless block_given?
+    fail ArgumentError, 'shutdown must receive a block' unless block_given?
 
     @mutex.synchronize do
       @shutdown_block = block
@@ -124,7 +123,7 @@ class ConnectionPool::TimedStack
   #
   # This method must returns true if a connection is available on the stack.
 
-  def connection_stored?(options = nil)
+  def connection_stored?(_options = nil)
     !@que.empty?
   end
 
@@ -133,7 +132,7 @@ class ConnectionPool::TimedStack
   #
   # This method must return a connection from the stack.
 
-  def fetch_connection(options = nil)
+  def fetch_connection(_options = nil)
     @que.pop
   end
 
@@ -154,7 +153,7 @@ class ConnectionPool::TimedStack
   #
   # This method must return +obj+ to the stack.
 
-  def store_connection(obj, options = nil)
+  def store_connection(obj, _options = nil)
     @que.push obj
   end
 
@@ -164,7 +163,7 @@ class ConnectionPool::TimedStack
   # This method must create a connection if and only if the total number of
   # connections allowed has not been met.
 
-  def try_create(options = nil)
+  def try_create(_options = nil)
     unless @created == @max
       object = @create_block.call
       @created += 1

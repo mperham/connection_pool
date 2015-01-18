@@ -1,7 +1,6 @@
 require_relative 'helper'
 
 class TestConnectionPoolTimedStack < Minitest::Test
-
   def setup
     @stack = ConnectionPool::TimedStack.new { Object.new }
   end
@@ -35,7 +34,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_object_creation_fails
-    stack = ConnectionPool::TimedStack.new(2) { raise 'failure' }
+    stack = ConnectionPool::TimedStack.new(2) { fail 'failure' }
 
     begin
       stack.pop
@@ -102,7 +101,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_shutdown
-    @stack.shutdown { }
+    @stack.shutdown {}
 
     assert_raises ConnectionPool::PoolShuttingDownError do
       @stack.pop
@@ -144,6 +143,4 @@ class TestConnectionPoolTimedStack < Minitest::Test
     refute_empty called
     assert_empty @stack
   end
-
 end
-
