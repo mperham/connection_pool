@@ -47,7 +47,11 @@ class TestConnectionPool < Minitest::Test
       end
     end.each do |thread|
       Thread.pass until thread.status == 'sleep'
-    end.map do |thread|
+    end
+  end
+
+  def kill_threads(threads)
+    threads.each do |thread|
       thread.kill
       Thread.pass while thread.alive?
     end
@@ -105,6 +109,33 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { pool.checkout }.join
   end
 
+  def test_with_with_dangerous_timeouts
+    skip('JRuby GC dislikes this test') if RUBY_ENGINE.to_sym == :jruby
+
+    marker_class = Class.new
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { marker_class.new }
+
+    # no "connections" allocated yet
+    assert_equal [], ObjectSpace.each_object(marker_class).to_a
+
+    checkin_time = 0.05
+
+    assert_raises Timeout::Error do
+      Timeout.timeout(checkin_time) do
+        pool.with do
+          # a "connection" has been allocated
+          refute_equal [], ObjectSpace.each_object(marker_class).to_a
+          sleep 2 * checkin_time
+        end
+      end
+    end
+
+    GC.start
+
+    # no dangling references to this "connection" remain
+    assert_equal [], ObjectSpace.each_object(marker_class).to_a
+  end
+
   def test_with_timeout_override
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
 
@@ -130,21 +161,13 @@ class TestConnectionPool < Minitest::Test
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
     conn = pool.checkout
 
-    t1 = Thread.new do
-      pool.checkout
-    end
-
     assert_raises Timeout::Error do
-      t1.join
+      Thread.new { pool.checkout }.join
     end
 
     pool.checkin
 
-    t2 = Thread.new do
-      pool.checkout
-    end
-
-    assert_same conn, t2.value
+    assert_same conn, Thread.new { pool.checkout }.value
   end
 
   def test_returns_value
@@ -319,11 +342,13 @@ class TestConnectionPool < Minitest::Test
       Recorder.new.tap { |r| recorders << r }
     end
 
-    use_pool pool, 3
+    threads = use_pool pool, 3
 
     pool.shutdown do |recorder|
       recorder.do_work("shutdown")
     end
+
+    kill_threads(threads)
 
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
   end
@@ -345,7 +370,7 @@ class TestConnectionPool < Minitest::Test
       Recorder.new.tap { |r| recorders << r }
     end
 
-    use_pool pool, 3
+    threads = use_pool pool, 2
 
     pool.checkout
 
@@ -353,7 +378,9 @@ class TestConnectionPool < Minitest::Test
       recorder.do_work("shutdown")
     end
 
-    assert_equal [[], ["shutdown"], ["shutdown"]], recorders.map { |r| r.calls }.sort
+    kill_threads(threads)
+
+    assert_equal [["shutdown"], ["shutdown"], []], recorders.map { |r| r.calls }
 
     pool.checkin
 
@@ -375,11 +402,13 @@ class TestConnectionPool < Minitest::Test
       Recorder.new.tap { |r| recorders << r }
     end
 
-    use_pool wrapper, 3
+    threads = use_pool wrapper, 3
 
     wrapper.pool_shutdown do |recorder|
       recorder.do_work("shutdown")
     end
+
+    kill_threads(threads)
 
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
   end

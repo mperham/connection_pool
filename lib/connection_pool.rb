@@ -53,22 +53,28 @@ class ConnectionPool
   end
 
   def with(options = {})
+    success = false # hoisted
     conn = checkout(options)
     begin
-      yield conn
+      (yield conn).tap do
+        success = true # means the connection wasn't interrupted
+      end
     ensure
-      checkin
+      if success
+        # everything is roses, we can safely check the connection back in
+        checkin
+      else
+        @available.discard!(pop_connection)
+      end
     end
   end
 
   def checkout(options = {})
-    stack = ::Thread.current[@key] ||= []
-
-    if stack.empty?
+    conn = if stack.empty?
       timeout = options[:timeout] || @timeout
-      conn = @available.pop(timeout: timeout)
+      @available.pop(timeout: timeout)
     else
-      conn = stack.last
+      stack.last
     end
 
     stack.push conn
@@ -76,19 +82,28 @@ class ConnectionPool
   end
 
   def checkin
-    stack = ::Thread.current[@key]
-    raise ConnectionPool::Error, 'no connections are checked out' if
-      !stack || stack.empty?
+    conn = pop_connection # mutates stack, must be on its own line
+    @available.push(conn) if stack.empty?
 
-    conn = stack.pop
-    if stack.empty?
-      @available << conn
-    end
     nil
   end
 
   def shutdown(&block)
     @available.shutdown(&block)
+  end
+
+  private
+
+  def pop_connection
+    if stack.empty?
+      raise ConnectionPool::Error, 'no connections are checked out'
+    else
+      stack.pop
+    end
+  end
+
+  def stack
+    ::Thread.current[@key] ||= []
   end
 
   class Wrapper < ::BasicObject
@@ -98,13 +113,8 @@ class ConnectionPool
       @pool = ::ConnectionPool.new(options, &block)
     end
 
-    def with
-      conn = @pool.checkout
-      begin
-        yield conn
-      ensure
-        @pool.checkin
-      end
+    def with(&block)
+      @pool.with(&block)
     end
 
     def pool_shutdown(&block)
@@ -112,11 +122,11 @@ class ConnectionPool
     end
 
     def respond_to?(id, *args)
-      METHODS.include?(id) || @pool.with { |c| c.respond_to?(id, *args) }
+      METHODS.include?(id) || with { |c| c.respond_to?(id, *args) }
     end
 
     def method_missing(name, *args, &block)
-      @pool.with do |connection|
+      with do |connection|
         connection.send(name, *args, &block)
       end
     end

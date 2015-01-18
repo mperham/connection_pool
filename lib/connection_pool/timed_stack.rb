@@ -117,6 +117,22 @@ class ConnectionPool::TimedStack
     @max - @created + @que.length
   end
 
+  ##
+  # Indicates that a connection isn't coming back, allowing a new one to be
+  # created to replace it.
+
+  def discard!(obj)
+    @mutex.synchronize do
+      if @shutdown_block
+        @shutdown_block.call(obj)
+      else
+        @created -= 1
+      end
+
+      @resource.broadcast
+    end
+  end
+
   private
 
   ##
