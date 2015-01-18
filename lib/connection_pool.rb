@@ -57,8 +57,8 @@ class ConnectionPool
     # any connection whose usage after checkout does not finish as expected.
     # See #67
     success = false
-    conn = checkout(options)
     begin
+      conn = checkout(options)
       result = yield conn
       success = true # means the connection wasn't interrupted
       result
@@ -73,20 +73,20 @@ class ConnectionPool
   end
 
   def checkout(options = {})
-    conn = if stack.empty?
-      timeout = options[:timeout] || @timeout
-      @available.pop(timeout: timeout)
-    else
-      stack.last
+    # If we already have a connection checked out for this thread
+    # we assume it's corrupted and should be discarded rather than reused
+    if conn = ::Thread.current[@key]
+      @available.discard!(conn)
+      ::Thread.current[@key] = nil
     end
 
-    stack.push conn
-    conn
+    timeout = options[:timeout] || @timeout
+    ::Thread.current[@key] = @available.pop(timeout: timeout)
   end
 
   def checkin
     conn = pop_connection # mutates stack, must be on its own line
-    @available.push(conn) if stack.empty?
+    @available.push(conn) if !::Thread.current[@key]
 
     nil
   end
@@ -98,15 +98,13 @@ class ConnectionPool
   private
 
   def pop_connection
-    if stack.empty?
+    unless ::Thread.current[@key]
       raise ConnectionPool::Error, 'no connections are checked out'
-    else
-      stack.pop
     end
-  end
 
-  def stack
-    ::Thread.current[@key] ||= []
+    conn = ::Thread.current[@key]
+    ::Thread.current[@key] = nil
+    conn
   end
 
   class Wrapper < ::BasicObject

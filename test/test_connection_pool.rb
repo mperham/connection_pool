@@ -43,7 +43,12 @@ class TestConnectionPool < Minitest::Test
   def use_pool(pool, size)
     Array.new(size) do
       Thread.new do
-        pool.with do sleep end
+        begin
+          pool.with do sleep end
+        rescue Exception => ex
+          puts "#{ex.class}: #{ex.message}"
+          puts ex.backtrace
+        end
       end
     end.each do |thread|
       Thread.pass until thread.status == 'sleep'
@@ -53,7 +58,7 @@ class TestConnectionPool < Minitest::Test
   def kill_threads(threads)
     threads.each do |thread|
       thread.kill
-      Thread.pass while thread.alive?
+      thread.join
     end
   end
 
@@ -110,7 +115,14 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_with_with_dangerous_timeouts
-    skip('JRuby GC dislikes this test') if RUBY_ENGINE.to_sym == :jruby
+    case RUBY_ENGINE.to_sym
+    when :jruby
+      skip('JRuby GC dislikes this test')
+    when :ruby
+      if RUBY_VERSION == '2.0.0' && RUBY_PATCHLEVEL == 598
+        skip("#{RUBY_VERSION}p#{RUBY_PATCHLEVEL} GC dislikes this test")
+      end
+    end
 
     marker_class = Class.new
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { marker_class.new }
@@ -200,9 +212,6 @@ class TestConnectionPool < Minitest::Test
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
 
     pool.checkout
-    pool.checkout
-
-    pool.checkin
 
     assert_raises Timeout::Error do
       Thread.new do
@@ -219,6 +228,7 @@ class TestConnectionPool < Minitest::Test
     pool = ConnectionPool.new(:size => 1) { NetworkConnection.new }
 
     conn = pool.checkout
+    pool.checkin
 
     assert_kind_of NetworkConnection, conn
 
@@ -309,30 +319,6 @@ class TestConnectionPool < Minitest::Test
     end
 
     assert_equal 1, ids.uniq.size
-  end
-
-  def test_nested_checkout
-    recorder = Recorder.new
-    pool = ConnectionPool.new(:size => 1) { recorder }
-    pool.with do |r_outer|
-      @other = Thread.new do |t|
-        pool.with do |r_other|
-          r_other.do_work('other')
-        end
-      end
-
-      pool.with do |r_inner|
-        r_inner.do_work('inner')
-      end
-
-      Thread.pass
-
-      r_outer.do_work('outer')
-    end
-
-    @other.join
-
-    assert_equal ['inner', 'outer', 'other'], recorder.calls
   end
 
   def test_shutdown_is_executed_for_all_connections
