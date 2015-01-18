@@ -62,13 +62,11 @@ class ConnectionPool
   end
 
   def checkout(options = {})
-    stack = ::Thread.current[@key] ||= []
-
-    if stack.empty?
+    conn = if stack.empty?
       timeout = options[:timeout] || @timeout
-      conn = @available.pop(timeout: timeout)
+      @available.pop(timeout: timeout)
     else
-      conn = stack.last
+      stack.last
     end
 
     stack.push conn
@@ -76,19 +74,28 @@ class ConnectionPool
   end
 
   def checkin
-    stack = ::Thread.current[@key]
-    raise ConnectionPool::Error, 'no connections are checked out' if
-      !stack || stack.empty?
+    conn = pop_connection # mutates stack, must be on its own line
+    @available.push(conn) if stack.empty?
 
-    conn = stack.pop
-    if stack.empty?
-      @available << conn
-    end
     nil
   end
 
   def shutdown(&block)
     @available.shutdown(&block)
+  end
+
+  private
+
+  def pop_connection
+    if stack.empty?
+      raise ConnectionPool::Error, 'no connections are checked out'
+    else
+      stack.pop
+    end
+  end
+
+  def stack
+    ::Thread.current[@key] ||= []
   end
 
   class Wrapper < ::BasicObject
