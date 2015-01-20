@@ -1,3 +1,11 @@
+2.1.1
+------
+
+- Work around a subtle race condition with code which uses `Timeout.timeout` and
+  checks out a connection within the timeout block.  This might cause
+  connections to get into a bad state and raise very odd errors. [tamird, #67]
+
+
 2.1.0
 ------
 
