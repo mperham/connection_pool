@@ -126,6 +126,9 @@ class ConnectionPool::TimedStack
       if @shutdown_block
         @shutdown_block.call(obj)
       else
+        if obj.respond_to?(:close)
+          obj.close rescue nil
+        end
         @created -= 1
       end
 
