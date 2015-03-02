@@ -1,3 +1,11 @@
+2.1.2
+------
+
+- The connection\_pool will now close any connections which respond to
+  `close` (Dalli) or `disconnect!` (Redis).  This ensures discarded connections
+  from the fix in 2.1.1 are torn down ASAP and don't linger open.
+
+
 2.1.1
 ------
 
