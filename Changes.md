@@ -1,3 +1,8 @@
+2.1.3
+------
+- redis-namespace connections which respond to `redis` disconnect by invoking
+  the method on the underlying connection.
+
 2.1.2
 ------
 
