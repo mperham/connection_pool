@@ -34,6 +34,25 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_equal 1, stack.length
   end
 
+  def test_object_creation_fails
+    stack = ConnectionPool::TimedStack.new(2) { raise 'failure' }
+
+    begin
+      stack.pop
+    rescue => error
+      assert_equal 'failure', error.message
+    end
+
+    begin
+      stack.pop
+    rescue => error
+      assert_equal 'failure', error.message
+    end
+
+    refute_empty stack
+    assert_equal 2, stack.length
+  end
+
   def test_pop
     object = Object.new
     @stack.push object

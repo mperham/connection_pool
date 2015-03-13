@@ -188,8 +188,9 @@ class ConnectionPool::TimedStack
 
   def try_create(options = nil)
     unless @created == @max
+      object = @create_block.call
       @created += 1
-      @create_block.call
+      object
     end
   end
 end
