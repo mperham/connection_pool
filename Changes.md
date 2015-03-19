@@ -1,3 +1,9 @@
+2.1.3
+------
+
+- Don't increment created count until connection is successfully
+  created. [mylesmegyesi, #73]
+
 2.1.2
 ------
 
