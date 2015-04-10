@@ -124,6 +124,8 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_checkout_ignores_timeout
+    skip("Thread.handle_interrupt not available") unless Thread.respond_to?(:handle_interrupt)
+
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
     def pool.checkout(options)
       sleep 0.015
