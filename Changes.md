@@ -1,3 +1,12 @@
+connection\_pool changelog
+---------------------------
+
+2.1.4
+------
+
+- Rollback `Timeout` handling introduced in 2.1.1 and 2.1.2.  It seems
+  impossible to safely work around the issue. [#75]
+
 2.1.3
 ------
 

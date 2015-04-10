@@ -53,21 +53,14 @@ class ConnectionPool
   end
 
   def with(options = {})
-    # Connections can become corrupted via Timeout::Error.  Discard
-    # any connection whose usage after checkout does not finish as expected.
-    # See #67
-    success = false
-    conn = checkout(options)
-    begin
-      result = yield conn
-      success = true # means the connection wasn't interrupted
-      result
-    ensure
-      if success
-        # everything is roses, we can safely check the connection back in
+    Thread.handle_interrupt(StandardError => :never) do
+      conn = checkout(options)
+      begin
+        Thread.handle_interrupt(StandardError => :immediate) do
+          yield conn
+        end
+      ensure
         checkin
-      else
-        @available.discard!(pop_connection)
       end
     end
   end

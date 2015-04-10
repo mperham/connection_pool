@@ -126,12 +126,6 @@ class ConnectionPool::TimedStack
       if @shutdown_block
         @shutdown_block.call(obj)
       else
-        # try to shut down the connection before throwing it away
-        if obj.respond_to?(:close) # Dalli::Client
-          obj.close
-        elsif obj.respond_to?(:disconnect!) # Redis
-          obj.disconnect!
-        end
         @created -= 1
       end
 
