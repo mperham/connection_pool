@@ -109,6 +109,21 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { pool.checkout }.join
   end
 
+  def test_with_timeout
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+
+    assert_raises Timeout::Error do
+      Timeout.timeout(0.01) do
+        pool.with do |obj|
+          assert_equal 0, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
+          sleep 0.011
+        end
+      end
+    end
+
+    assert_equal 1, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
+  end
+
   def test_explicit_return
     pool = ConnectionPool.new(:timeout => 0, :size => 1) do
       mock = Minitest::Mock.new
