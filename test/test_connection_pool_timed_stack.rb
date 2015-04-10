@@ -146,4 +146,3 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
 end
-
