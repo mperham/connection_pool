@@ -1,6 +1,7 @@
 require_relative 'connection_pool/version'
 require_relative 'connection_pool/timed_stack'
 
+
 # Generic connection pool class for e.g. sharing a limited number of network connections
 # among many threads.  Note: Connections are lazily created.
 #
@@ -52,11 +53,14 @@ class ConnectionPool
     @key = :"current-#{@available.object_id}"
   end
 
+if Thread.respond_to?(:handle_interrupt)
+
+  # MRI
   def with(options = {})
-    Thread.handle_interrupt(StandardError => :never) do
+    Thread.handle_interrupt(Exception => :never) do
       conn = checkout(options)
       begin
-        Thread.handle_interrupt(StandardError => :immediate) do
+        Thread.handle_interrupt(Exception => :immediate) do
           yield conn
         end
       ensure
@@ -64,6 +68,20 @@ class ConnectionPool
       end
     end
   end
+
+else
+
+  # jruby 1.7.x
+  def with(options = {})
+    conn = checkout(options)
+    begin
+      yield conn
+    ensure
+      checkin
+    end
+  end
+
+end
 
   def checkout(options = {})
     conn = if stack.empty?
