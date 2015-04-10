@@ -120,7 +120,27 @@ class TestConnectionPool < Minitest::Test
         end
       end
     end
+    assert_equal 1, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
+  end
 
+  def test_checkout_ignores_timeout
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+    def pool.checkout(options)
+      obj = super
+      sleep 0.015
+      obj
+    end
+
+    did_something = false
+    assert_raises Timeout::Error do
+      Timeout.timeout(0.01) do
+        pool.with do |obj|
+          did_something = true
+          assert_equal 0, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
+        end
+      end
+    end
+    assert did_something
     assert_equal 1, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
   end
 
