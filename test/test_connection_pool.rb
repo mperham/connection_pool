@@ -116,7 +116,7 @@ class TestConnectionPool < Minitest::Test
       Timeout.timeout(0.01) do
         pool.with do |obj|
           assert_equal 0, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
-          sleep 0.011
+          sleep 0.015
         end
       end
     end
@@ -126,9 +126,8 @@ class TestConnectionPool < Minitest::Test
   def test_checkout_ignores_timeout
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
     def pool.checkout(options)
-      obj = super
       sleep 0.015
-      obj
+      super
     end
 
     did_something = false
@@ -136,7 +135,11 @@ class TestConnectionPool < Minitest::Test
       Timeout.timeout(0.01) do
         pool.with do |obj|
           did_something = true
-          assert_equal 0, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
+          # Timeout::Error will be triggered by any non-trivial Ruby code
+          # executed here since it couldn't be raised during checkout.
+          # It looks like setting the local variable above does not trigger
+          # the Timeout check in MRI 2.2.1.
+          obj.tap { obj.hash }
         end
       end
     end
