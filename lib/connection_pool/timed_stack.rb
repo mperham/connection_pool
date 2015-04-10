@@ -128,9 +128,9 @@ class ConnectionPool::TimedStack
       else
         # try to shut down the connection before throwing it away
         if obj.respond_to?(:close) # Dalli::Client
-          obj.close rescue nil
+          obj.close
         elsif obj.respond_to?(:disconnect!) # Redis
-          obj.disconnect! rescue nil
+          obj.disconnect!
         end
         @created -= 1
       end

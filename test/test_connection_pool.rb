@@ -143,6 +143,20 @@ class TestConnectionPool < Minitest::Test
     assert_equal [], ObjectSpace.each_object(marker_class).to_a
   end
 
+  def test_explicit_return
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) do
+      mock = Minitest::Mock.new
+      def mock.disconnect!
+        raise "should not disconnect upon explicit return"
+      end
+      mock
+    end
+
+    pool.with do |conn|
+      return true
+    end
+  end
+
   def test_with_timeout_override
     pool = ConnectionPool.new(:timeout => 0, :size => 1) { NetworkConnection.new }
 
