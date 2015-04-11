@@ -1,3 +1,13 @@
+connection\_pool changelog
+---------------------------
+
+2.2.0
+------
+
+- Rollback `Timeout` handling introduced in 2.1.1 and 2.1.2.  It seems
+  impossible to safely work around the issue. Please never, ever use
+  `Timeout.timeout` in your code or you will see rare but mysterious bugs. [#75]
+
 2.1.3
 ------
 

@@ -117,28 +117,6 @@ class ConnectionPool::TimedStack
     @max - @created + @que.length
   end
 
-  ##
-  # Indicates that a connection isn't coming back, allowing a new one to be
-  # created to replace it.
-
-  def discard!(obj)
-    @mutex.synchronize do
-      if @shutdown_block
-        @shutdown_block.call(obj)
-      else
-        # try to shut down the connection before throwing it away
-        if obj.respond_to?(:close) # Dalli::Client
-          obj.close
-        elsif obj.respond_to?(:disconnect!) # Redis
-          obj.disconnect!
-        end
-        @created -= 1
-      end
-
-      @resource.broadcast
-    end
-  end
-
   private
 
   ##

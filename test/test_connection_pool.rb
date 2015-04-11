@@ -109,38 +109,44 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { pool.checkout }.join
   end
 
-  def test_with_with_dangerous_timeouts
-    case RUBY_ENGINE.to_sym
-    when :jruby
-      skip('JRuby GC dislikes this test')
-    when :ruby
-      if RUBY_VERSION == '2.0.0' && RUBY_PATCHLEVEL == 598
-        skip("#{RUBY_VERSION}p#{RUBY_PATCHLEVEL} GC dislikes this test")
-      end
-    end
-
-    marker_class = Class.new
-    pool = ConnectionPool.new(:timeout => 0, :size => 1) { marker_class.new }
-
-    # no "connections" allocated yet
-    assert_equal [], ObjectSpace.each_object(marker_class).to_a
-
-    checkin_time = 0.05
+  def test_with_timeout
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
 
     assert_raises Timeout::Error do
-      Timeout.timeout(checkin_time) do
-        pool.with do
-          # a "connection" has been allocated
-          refute_equal [], ObjectSpace.each_object(marker_class).to_a
-          sleep 2 * checkin_time
+      Timeout.timeout(0.01) do
+        pool.with do |obj|
+          assert_equal 0, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
+          sleep 0.015
         end
       end
     end
+    assert_equal 1, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
+  end
 
-    GC.start
+  def test_checkout_ignores_timeout
+    skip("Thread.handle_interrupt not available") unless Thread.respond_to?(:handle_interrupt)
 
-    # no dangling references to this "connection" remain
-    assert_equal [], ObjectSpace.each_object(marker_class).to_a
+    pool = ConnectionPool.new(:timeout => 0, :size => 1) { Object.new }
+    def pool.checkout(options)
+      sleep 0.015
+      super
+    end
+
+    did_something = false
+    assert_raises Timeout::Error do
+      Timeout.timeout(0.01) do
+        pool.with do |obj|
+          did_something = true
+          # Timeout::Error will be triggered by any non-trivial Ruby code
+          # executed here since it couldn't be raised during checkout.
+          # It looks like setting the local variable above does not trigger
+          # the Timeout check in MRI 2.2.1.
+          obj.tap { obj.hash }
+        end
+      end
+    end
+    assert did_something
+    assert_equal 1, pool.instance_variable_get(:@available).instance_variable_get(:@que).size
   end
 
   def test_explicit_return

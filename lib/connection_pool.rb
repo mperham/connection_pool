@@ -1,6 +1,7 @@
 require_relative 'connection_pool/version'
 require_relative 'connection_pool/timed_stack'
 
+
 # Generic connection pool class for e.g. sharing a limited number of network connections
 # among many threads.  Note: Connections are lazily created.
 #
@@ -52,25 +53,35 @@ class ConnectionPool
     @key = :"current-#{@available.object_id}"
   end
 
+if Thread.respond_to?(:handle_interrupt)
+
+  # MRI
   def with(options = {})
-    # Connections can become corrupted via Timeout::Error.  Discard
-    # any connection whose usage after checkout does not finish as expected.
-    # See #67
-    success = false
-    conn = checkout(options)
-    begin
-      result = yield conn
-      success = true # means the connection wasn't interrupted
-      result
-    ensure
-      if success
-        # everything is roses, we can safely check the connection back in
+    Thread.handle_interrupt(Exception => :never) do
+      conn = checkout(options)
+      begin
+        Thread.handle_interrupt(Exception => :immediate) do
+          yield conn
+        end
+      ensure
         checkin
-      else
-        @available.discard!(pop_connection)
       end
     end
   end
+
+else
+
+  # jruby 1.7.x
+  def with(options = {})
+    conn = checkout(options)
+    begin
+      yield conn
+    ensure
+      checkin
+    end
+  end
+
+end
 
   def checkout(options = {})
     conn = if stack.empty?
