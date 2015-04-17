@@ -3,7 +3,7 @@ require_relative 'helper'
 class TestConnectionPool < Minitest::Test
 
   class NetworkConnection
-    SLEEP_TIME = 0.05
+    SLEEP_TIME = 0.1
 
     def initialize
       @x = 0
