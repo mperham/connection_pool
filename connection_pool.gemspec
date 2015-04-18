@@ -1,9 +1,8 @@
 # -*- encoding: utf-8 -*-
-require './lib/connection_pool/version'
 
 Gem::Specification.new do |s|
   s.name        = 'connection_pool'
-  s.version     = ConnectionPool::VERSION
+  s.version     = '2.2.0'
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Mike Perham', 'Damian Janowski']
   s.email       = ['mperham@gmail.com', 'damian@educabilia.com']
@@ -18,5 +17,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'bundler'
   s.add_development_dependency 'minitest', '>= 5.0.0'
   s.add_development_dependency 'rake'
-  s.add_development_dependency 'rubocop', '~> 0.30.0'
+  s.add_development_dependency 'rubocop', '~> 0.32.0'
 end

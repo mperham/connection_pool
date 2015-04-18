@@ -42,11 +42,13 @@ class TestConnectionPool < Minitest::Test
   end
 
   def use_pool(pool, size)
-    Array.new(size) do
+    threads = Array.new(size) do
       Thread.new do
         pool.with { sleep }
       end
-    end.each do |thread|
+    end
+
+    threads.each do |thread|
       Thread.pass until thread.status == 'sleep'
     end
   end

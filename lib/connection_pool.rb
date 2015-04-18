@@ -1,4 +1,3 @@
-require_relative 'connection_pool/version'
 require_relative 'connection_pool/timed_stack'
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
@@ -119,7 +118,7 @@ class ConnectionPool
     ::Thread.current[@key] ||= []
   end
 
-  class Wrapper < ::BasicObject
+  class Wrapper < ::BasicObject # :nodoc:
     METHODS = [:with, :pool_shutdown]
 
     def initialize(options = {}, &block)
