@@ -3,13 +3,15 @@ require_relative 'helper'
 class TestConnectionPool < Minitest::Test
 
   class NetworkConnection
+    SLEEP_TIME = 0.1
+
     def initialize
       @x = 0
     end
 
     def do_something
       @x += 1
-      sleep 0.05
+      sleep SLEEP_TIME
       @x
     end
 
@@ -19,7 +21,7 @@ class TestConnectionPool < Minitest::Test
 
     def do_something_with_block
       @x += yield
-      sleep 0.05
+      sleep SLEEP_TIME
       @x
     end
 
@@ -58,21 +60,26 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_basic_multithreaded_usage
-    pool = ConnectionPool.new(:size => 5) { NetworkConnection.new }
+    pool_size = 5
+    pool = ConnectionPool.new(:size => pool_size) { NetworkConnection.new }
 
-    threads = Array.new(15) do
+    start = Time.new
+
+    generations = 3
+
+    result = Array.new(pool_size * generations) do
       Thread.new do
         pool.with do |net|
           net.do_something
         end
       end
-    end
+    end.map(&:value)
 
-    a = Time.now
-    result = threads.map(&:value)
-    b = Time.now
-    assert_operator((b - a), :>, 0.125)
-    assert_equal([1,2,3].cycle(5).sort, result.sort)
+    finish = Time.new
+
+    assert_equal((1..generations).cycle(pool_size).sort, result.sort)
+
+    assert_operator(finish - start, :>, generations * NetworkConnection::SLEEP_TIME)
   end
 
   def test_timeout
@@ -179,7 +186,7 @@ class TestConnectionPool < Minitest::Test
       pool.with { |net| net.do_something }
     end
 
-    pool.with(:timeout => 0.1) do |conn|
+    pool.with(:timeout => 2 * NetworkConnection::SLEEP_TIME) do |conn|
       refute_nil conn
     end
   end
@@ -287,11 +294,11 @@ class TestConnectionPool < Minitest::Test
       pool.checkout
     end
 
-    assert pool.checkout :timeout => 0.1
+    assert pool.checkout :timeout => 2 * NetworkConnection::SLEEP_TIME
   end
 
   def test_passthru
-    pool = ConnectionPool.wrap(:timeout => 0.1, :size => 1) { NetworkConnection.new }
+    pool = ConnectionPool.wrap(:timeout => 2 * NetworkConnection::SLEEP_TIME, :size => 1) { NetworkConnection.new }
     assert_equal 1, pool.do_something
     assert_equal 2, pool.do_something
     assert_equal 5, pool.do_something_with_block { 3 }
@@ -299,7 +306,7 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_passthru_respond_to
-    pool = ConnectionPool.wrap(:timeout => 0.1, :size => 1) { NetworkConnection.new }
+    pool = ConnectionPool.wrap(:timeout => 2 * NetworkConnection::SLEEP_TIME, :size => 1) { NetworkConnection.new }
     assert pool.respond_to?(:with)
     assert pool.respond_to?(:do_something)
     assert pool.respond_to?(:do_magic)
@@ -307,7 +314,7 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_return_value
-    pool = ConnectionPool.new(:timeout => 0.1, :size => 1) { NetworkConnection.new }
+    pool = ConnectionPool.new(:timeout => 2 * NetworkConnection::SLEEP_TIME, :size => 1) { NetworkConnection.new }
     result = pool.with do |net|
       net.fast
     end
