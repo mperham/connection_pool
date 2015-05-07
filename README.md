@@ -8,11 +8,6 @@ MongoDB has its own connection pool.  ActiveRecord has its own connection pool.
 This is a generic connection pool that can be used with anything, e.g. Redis,
 Dalli and other Ruby network clients.
 
-**WARNING**: Don't ever use `Timeout.timeout` in your Ruby code or you will see
-occasional silent corruption and mysterious errors.  The Timeout API is unsafe
-and cannot be used correctly, ever.  Use proper socket timeout options as
-exposed by Net::HTTP, Redis, Dalli, etc.
-
 
 Usage
 -----
@@ -95,6 +90,11 @@ Notes
 - There is no provision for repairing or checking the health of a connection;
   connections should be self-repairing.  This is true of the Dalli and Redis
   clients.
+- **WARNING**: Don't ever use `Timeout.timeout` in your Ruby code or you will see
+  occasional silent corruption and mysterious errors.  The Timeout API is unsafe
+  and cannot be used correctly, ever.  Use proper socket timeout options as
+  exposed by Net::HTTP, Redis, Dalli, etc.
+
 
 
 Install
