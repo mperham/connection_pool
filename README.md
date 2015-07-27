@@ -45,8 +45,10 @@ sections when a resource is not available, or conversely if you are comfortable
 blocking longer on a particular resource. This is not implemented in the below
 `ConnectionPool::Wrapper` class.
 
+## Migrating to a Connection Pool
+
 You can use `ConnectionPool::Wrapper` to wrap a single global connection,
-making it easier to port your connection code over time:
+making it easier to migrate existing connection code over time:
 
 ``` ruby
 $redis = ConnectionPool::Wrapper.new(size: 5, timeout: 3) { Redis.connect }
@@ -69,6 +71,9 @@ end
 Once you've ported your entire system to use `with`, you can simply remove
 `Wrapper` and use the simpler and faster `ConnectionPool`.
 
+
+## Shutdown
+
 You can shut down a ConnectionPool instance once it should no longer be used.
 Further checkout attempts will immediately raise an error but existing checkouts
 will work.
@@ -79,7 +84,7 @@ cp.shutdown { |conn| conn.close }
 ```
 
 Shutting down a connection pool will block until all connections are checked in and closed.
-Note that shutting down is completely optional; Ruby's garbage collector will reclaim
+**Note that shutting down is completely optional**; Ruby's garbage collector will reclaim
 unreferenced pools under normal circumstances.
 
 
@@ -94,15 +99,6 @@ Notes
   occasional silent corruption and mysterious errors.  The Timeout API is unsafe
   and cannot be used correctly, ever.  Use proper socket timeout options as
   exposed by Net::HTTP, Redis, Dalli, etc.
-
-
-
-Install
--------
-
-```
-$ gem install connection_pool
-```
 
 
 Author
