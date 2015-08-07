@@ -1,0 +1,18 @@
+inherit_from: .rubocop_todo.yml
+
+Lint/EndAlignment:
+  AlignWith: variable
+
+Metrics/ClassLength:
+  Exclude:
+    - test/**/*
+
+Metrics/LineLength:
+  Max: 120
+
+Style/Documentation:
+  Exclude:
+    - test/**/*
+
+Style/TrailingComma:
+  EnforcedStyleForMultiline: comma

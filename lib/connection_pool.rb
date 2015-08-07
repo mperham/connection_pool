@@ -1,6 +1,4 @@
-require_relative 'connection_pool/version'
 require_relative 'connection_pool/timed_stack'
-
 
 # Generic connection pool class for e.g. sharing a limited number of network connections
 # among many threads.  Note: Connections are lazily created.
@@ -32,7 +30,7 @@ require_relative 'connection_pool/timed_stack'
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5}
+  DEFAULTS = { size: 5, timeout: 5 }
 
   class Error < RuntimeError
   end
@@ -42,7 +40,7 @@ class ConnectionPool
   end
 
   def initialize(options = {}, &block)
-    raise ArgumentError, 'Connection pool requires a block' unless block
+    fail ArgumentError, 'Connection pool requires a block' unless block
 
     options = DEFAULTS.merge(options)
 
@@ -53,35 +51,35 @@ class ConnectionPool
     @key = :"current-#{@available.object_id}"
   end
 
-if Thread.respond_to?(:handle_interrupt)
+  if Thread.respond_to?(:handle_interrupt)
 
-  # MRI
-  def with(options = {})
-    Thread.handle_interrupt(Exception => :never) do
+    # MRI
+    def with(options = {})
+      Thread.handle_interrupt(Exception => :never) do
+        conn = checkout(options)
+        begin
+          Thread.handle_interrupt(Exception => :immediate) do
+            yield conn
+          end
+        ensure
+          checkin
+        end
+      end
+    end
+
+  else
+
+    # jruby 1.7.x
+    def with(options = {})
       conn = checkout(options)
       begin
-        Thread.handle_interrupt(Exception => :immediate) do
-          yield conn
-        end
+        yield conn
       ensure
         checkin
       end
     end
+
   end
-
-else
-
-  # jruby 1.7.x
-  def with(options = {})
-    conn = checkout(options)
-    begin
-      yield conn
-    ensure
-      checkin
-    end
-  end
-
-end
 
   def checkout(options = {})
     conn = if stack.empty?
@@ -110,7 +108,7 @@ end
 
   def pop_connection
     if stack.empty?
-      raise ConnectionPool::Error, 'no connections are checked out'
+      fail ConnectionPool::Error, 'no connections are checked out'
     else
       stack.pop
     end
@@ -120,7 +118,7 @@ end
     ::Thread.current[@key] ||= []
   end
 
-  class Wrapper < ::BasicObject
+  class Wrapper < ::BasicObject # :nodoc:
     METHODS = [:with, :pool_shutdown]
 
     def initialize(options = {}, &block)
