@@ -15,7 +15,7 @@ require_relative 'connection_pool/timed_stack'
 #
 # Using optional timeout override (for that single invocation)
 #
-#    @pool.with(:timeout => 2.0) do |redis|
+#    @pool.with(timeout: 2.0) do |redis|
 #      redis.lpop('my-list') if redis.llen('my-list') > 0
 #    end
 #
