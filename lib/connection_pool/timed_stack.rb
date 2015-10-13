@@ -1,5 +1,6 @@
 require 'thread'
 require 'timeout'
+require_relative 'monotonic_time'
 
 ##
 # Raised when you attempt to retrieve a connection from a pool that has been
@@ -72,7 +73,7 @@ class ConnectionPool::TimedStack
     options, timeout = timeout, 0.5 if Hash === timeout
     timeout = options.fetch :timeout, timeout
 
-    deadline = Time.now + timeout
+    deadline = ConnectionPool.monotonic_time + timeout
     @mutex.synchronize do
       loop do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
@@ -81,7 +82,7 @@ class ConnectionPool::TimedStack
         connection = try_create(options)
         return connection if connection
 
-        to_wait = deadline - Time.now
+        to_wait = deadline - ConnectionPool.monotonic_time
         raise Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
         @resource.wait(@mutex, to_wait)
       end
