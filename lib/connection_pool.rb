@@ -124,7 +124,7 @@ end
     METHODS = [:with, :pool_shutdown]
 
     def initialize(options = {}, &block)
-      @pool = ::ConnectionPool.new(options, &block)
+      @pool = options.fetch(:pool) { ::ConnectionPool.new(options, &block) }
     end
 
     def with(&block)
