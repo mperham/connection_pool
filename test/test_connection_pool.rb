@@ -488,4 +488,14 @@ class TestConnectionPool < Minitest::Test
     assert_equal "eval'ed 1", wrapper.eval(1)
   end
 
+  def test_wrapper_with_connection_pool
+    recorder = Recorder.new
+    pool = ConnectionPool.new(size: 1) { recorder }
+    wrapper = ConnectionPool::Wrapper.new(pool: pool)
+
+    pool.with { |r| r.do_work('with') }
+    wrapper.do_work('wrapped')
+
+    assert_equal ['with', 'wrapped'], recorder.calls
+  end
 end
