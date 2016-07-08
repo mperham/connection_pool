@@ -80,7 +80,7 @@ will work.
 
 ```ruby
 cp = ConnectionPool.new { Redis.new }
-cp.shutdown { |conn| conn.quit }
+cp.pool_shutdown{ |conn| conn.quit }
 ```
 
 Shutting down a connection pool will block until all connections are checked in and closed.
