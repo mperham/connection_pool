@@ -1,6 +1,12 @@
 connection\_pool changelog
 ---------------------------
 
+2.2.1
+------
+
+- Allow CP::Wrapper to use an existing pool [#87, etiennebarrie]
+- Use monotonic time for more accurate timeouts [#84, jdantonio]
+
 2.2.0
 ------
 
