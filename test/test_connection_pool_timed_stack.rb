@@ -126,7 +126,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
       called << object
     end
 
-    @stack.push Object.new
+    @stack.push OpenStruct.new(:conn => Object.new)
 
     refute_empty called
     assert_empty @stack

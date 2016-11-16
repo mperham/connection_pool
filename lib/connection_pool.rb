@@ -30,6 +30,8 @@ require_relative 'connection_pool/timed_stack'
 # Accepts the following options:
 # - :size - number of connections to pool, defaults to 5
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
+# - :max_age - maximum number of seconds that a connection may be alive for (will recycle on checkin/checkout)
+# - :shutdown_proc - callable for shutting down a connection. can be overridden by passing a block to .shutdown()
 #
 class ConnectionPool
   DEFAULTS = {size: 5, timeout: 5}
@@ -48,8 +50,14 @@ class ConnectionPool
 
     @size = options.fetch(:size)
     @timeout = options.fetch(:timeout)
+    max_age = options.fetch(:max_age, Float::INFINITY)
+    @shutdown_proc = options.fetch(:shutdown_proc, nil)
 
-    @available = TimedStack.new(@size, &block)
+    if max_age.finite? && @shutdown_proc.nil?
+      raise ArgumentError("If passing :max_age, then :shutdown_proc must not be nil (pass `lambda { |conn| }` to just use the garbage collector)")
+    end
+
+    @available = TimedStack.new(@size, max_age, @shutdown_proc, &block)
     @key = :"current-#{@available.object_id}"
   end
 
@@ -84,26 +92,45 @@ else
 end
 
   def checkout(options = {})
-    conn = if stack.empty?
-      timeout = options[:timeout] || @timeout
-      @available.pop(timeout: timeout)
+    conn_wrapper = if stack.empty?
+       cr = nil
+      loop do
+        timeout = options[:timeout] || @timeout
+        cr = @available.pop(timeout: timeout)
+        if cr.expired?
+          cr.shutdown!
+        else
+          break
+        end
+      end
+      cr
     else
       stack.last
     end
 
-    stack.push conn
-    conn
+    stack.push conn_wrapper
+    conn_wrapper.conn
   end
 
   def checkin
-    conn = pop_connection # mutates stack, must be on its own line
-    @available.push(conn) if stack.empty?
-
+    conn_wrapper = pop_connection # mutates stack, must be on its own line
+    if stack.empty?
+      if conn_wrapper.expired?
+        conn_wrapper.shutdown!
+      else
+        @available.push(conn_wrapper)
+      end
+    end
     nil
   end
 
   def shutdown(&block)
-    @available.shutdown(&block)
+    if block_given?
+      shutdown_proc = block
+    else
+      shutdown_proc = @shutdown_proc
+    end
+    @available.shutdown(&shutdown_proc)
   end
 
   private

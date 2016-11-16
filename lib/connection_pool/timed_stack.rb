@@ -1,12 +1,14 @@
 require 'thread'
 require 'timeout'
 require_relative 'monotonic_time'
+require_relative 'connection'
 
 ##
 # Raised when you attempt to retrieve a connection from a pool that has been
 # shut down.
 
 class ConnectionPool::PoolShuttingDownError < RuntimeError; end
+
 
 ##
 # The TimedStack manages a pool of homogeneous connections (or any resource
@@ -33,7 +35,7 @@ class ConnectionPool::TimedStack
   # Creates a new pool with +size+ connections that are created from the given
   # +block+.
 
-  def initialize(size = 0, &block)
+  def initialize(size = 0, max_age = nil, shutdown_proc = nil, &block)
     @create_block = block
     @created = 0
     @que = []
@@ -41,18 +43,20 @@ class ConnectionPool::TimedStack
     @mutex = Mutex.new
     @resource = ConditionVariable.new
     @shutdown_block = nil
+    @shutdown_proc = shutdown_proc
+    @max_age = max_age
   end
 
   ##
   # Returns +obj+ to the stack.  +options+ is ignored in TimedStack but may be
   # used by subclasses that extend TimedStack.
 
-  def push(obj, options = {})
+  def push(wrapper, options = {})
     @mutex.synchronize do
       if @shutdown_block
-        @shutdown_block.call(obj)
+        @shutdown_block.call(wrapper.conn)
       else
-        store_connection obj, options
+        store_connection wrapper, options
       end
 
       @resource.broadcast
@@ -169,7 +173,8 @@ class ConnectionPool::TimedStack
     unless @created == @max
       object = @create_block.call
       @created += 1
-      object
+      wrapper = ConnectionPool::Connection.new(object, @max_age, @shutdown_proc)
+      wrapper
     end
   end
 end

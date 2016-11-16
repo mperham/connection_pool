@@ -387,6 +387,23 @@ class TestConnectionPool < Minitest::Test
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
   end
 
+  def test_shutdown_works_as_argument_to_connection_pool
+    recorders = []
+    pool = ConnectionPool.new(size: 3, shutdown_proc: lambda { |recorder| recorder.do_work("shutdown")}) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    threads = use_pool pool, 3
+
+    pool.shutdown do |recorder|
+      recorder.do_work("shutdown")
+    end
+
+    kill_threads(threads)
+
+    assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
+  end
+
   def test_raises_error_after_shutting_down
     pool = ConnectionPool.new(size: 1) { true }
 
