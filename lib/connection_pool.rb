@@ -53,8 +53,12 @@ class ConnectionPool
     max_age = options.fetch(:max_age, Float::INFINITY)
     @shutdown_proc = options.fetch(:shutdown_proc, nil)
 
-    if max_age.finite? && @shutdown_proc.nil?
-      raise ArgumentError("If passing :max_age, then :shutdown_proc must not be nil (pass `lambda { |conn| }` to just use the garbage collector)")
+    if max_age <= 0
+      raise ArgumentError.new(":max_age must be > 0")
+    end
+
+    if max_age.to_f.finite? && @shutdown_proc.nil?
+      raise ArgumentError.new("If passing :max_age, then :shutdown_proc must not be nil (pass `lambda { |conn| }` to just use the garbage collector)")
     end
 
     @available = TimedStack.new(@size, max_age, @shutdown_proc, &block)
@@ -98,7 +102,7 @@ end
         timeout = options[:timeout] || @timeout
         cr = @available.pop(timeout: timeout)
         if cr.expired?
-          cr.shutdown!
+          @available.abandon(cr)
         else
           break
         end
@@ -116,7 +120,7 @@ end
     conn_wrapper = pop_connection # mutates stack, must be on its own line
     if stack.empty?
       if conn_wrapper.expired?
-        conn_wrapper.shutdown!
+        @available.abandon(conn_wrapper)
       else
         @available.push(conn_wrapper)
       end

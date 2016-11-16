@@ -446,6 +446,24 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
+  def test_max_age
+    recorders = []
+
+    pool = ConnectionPool.new(size: 3, max_age: 0.1, shutdown_proc: lambda { |conn| conn.do_work("shutdown") }) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    pool.with do |conn|
+      sleep(0.2)
+    end
+
+    pool.with do |conn|
+      sleep(0.2)
+    end
+
+    assert_equal [["shutdown"], ["shutdown"]], recorders.map { |r| r.calls }
+  end
+
   def test_shutdown_is_executed_for_all_connections_in_wrapped_pool
     recorders = []
 
@@ -466,7 +484,6 @@ class TestConnectionPool < Minitest::Test
 
   def test_wrapper_method_missing
     wrapper = ConnectionPool::Wrapper.new { NetworkConnection.new }
-
     assert_equal 1, wrapper.fast
   end
 

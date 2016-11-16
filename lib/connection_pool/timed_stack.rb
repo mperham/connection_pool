@@ -94,6 +94,17 @@ class ConnectionPool::TimedStack
   end
 
   ##
+  # Mark a connection as abandoned so that it cannot be used again.
+  # Will call the pre-configured shutdown proc, if provided.
+  #
+  def abandon(connection_wrapper)
+    @mutex.synchronize do
+      connection_wrapper.shutdown!
+      @created -= 1
+    end
+  end
+
+  ##
   # Shuts down the TimedStack which prevents connections from being checked
   # out.  The +block+ is called once for each connection on the stack.
 
