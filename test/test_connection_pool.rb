@@ -105,7 +105,11 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_with
-    pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
+    pool = ConnectionPool.new(
+      timeout: 0,
+      size: 1,
+      connect: lambda { Object.new }
+    )
 
     pool.with do
       assert_raises Timeout::Error do
@@ -117,7 +121,11 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_with_timeout
-    pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
+    pool = ConnectionPool.new(
+      timeout: 0,
+      size: 1,
+      connect: lambda { Object.new }
+    )
 
     assert_raises Timeout::Error do
       Timeout.timeout(0.01) do
@@ -133,7 +141,12 @@ class TestConnectionPool < Minitest::Test
   def test_checkout_ignores_timeout
     skip("Thread.handle_interrupt not available") unless Thread.respond_to?(:handle_interrupt)
 
-    pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
+    pool = ConnectionPool.new(
+      timeout: 0,
+      size: 1,
+      connect: lambda { Object.new }
+    )
+
     def pool.checkout(options)
       sleep 0.015
       super
@@ -157,7 +170,8 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_explicit_return
-    pool = ConnectionPool.new(timeout: 0, size: 1) do
+    pool = ConnectionPool.new(timeout: 0, size: 1)
+    pool.connect_with do
       mock = Minitest::Mock.new
       def mock.disconnect!
         raise "should not disconnect upon explicit return"
@@ -199,7 +213,7 @@ class TestConnectionPool < Minitest::Test
       Thread.new { pool.checkout }.join
     end
 
-    pool.checkin
+    pool.checkin conn
 
     assert_same conn, Thread.new { pool.checkout }.value
   end
@@ -209,54 +223,22 @@ class TestConnectionPool < Minitest::Test
     assert_equal 1, pool.with {|o| 1 }
   end
 
-  def test_checkin_never_checkout
+  def test_checkin_garbage
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
 
-    e = assert_raises ConnectionPool::Error do
-      pool.checkin
+     assert_raises ConnectionPool::CheckedInUnCheckedOutConnectionError do
+      pool.checkin Object.new
     end
-
-    assert_equal 'no connections are checked out', e.message
-  end
-
-  def test_checkin_no_current_checkout
-    pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
-
-    pool.checkout
-    pool.checkin
-
-    assert_raises ConnectionPool::Error do
-      pool.checkin
-    end
-  end
-
-  def test_checkin_twice
-    pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
-
-    pool.checkout
-    pool.checkout
-
-    pool.checkin
-
-    assert_raises Timeout::Error do
-      Thread.new do
-        pool.checkout
-      end.join
-    end
-
-    pool.checkin
-
-    assert Thread.new { pool.checkout }.join
   end
 
   def test_checkout
-    pool = ConnectionPool.new(size: 1) { NetworkConnection.new }
+    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
 
     conn = pool.checkout
 
     assert_kind_of NetworkConnection, conn
 
-    assert_same conn, pool.checkout
+    refute_same conn, pool.checkout
   end
 
   def test_checkout_multithread
@@ -345,7 +327,7 @@ class TestConnectionPool < Minitest::Test
     assert_equal 1, ids.uniq.size
   end
 
-  def test_nested_checkout
+  def test_nested_checkout_fails
     recorder = Recorder.new
     pool = ConnectionPool.new(size: 1) { recorder }
     pool.with do |r_outer|
@@ -355,10 +337,6 @@ class TestConnectionPool < Minitest::Test
         end
       end
 
-      pool.with do |r_inner|
-        r_inner.do_work('inner')
-      end
-
       Thread.pass
 
       r_outer.do_work('outer')
@@ -366,7 +344,7 @@ class TestConnectionPool < Minitest::Test
 
     @other.join
 
-    assert_equal ['inner', 'outer', 'other'], recorder.calls
+    assert_equal ['outer', 'other'], recorder.calls
   end
 
   def test_shutdown_is_executed_for_all_connections
@@ -378,9 +356,28 @@ class TestConnectionPool < Minitest::Test
 
     threads = use_pool pool, 3
 
-    pool.shutdown do |recorder|
+    pool.disconnect_with do |recorder|
       recorder.do_work("shutdown")
     end
+
+    pool.shutdown
+
+    kill_threads(threads)
+
+    assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
+  end
+
+  def test_shutdown_works_as_argument_to_connection_pool
+    recorders = []
+    pool = ConnectionPool.new(
+      size: 3,
+      connect: lambda { Recorder.new.tap { |r| recorders << r } },
+      disconnect: lambda { |recorder| recorder.do_work("shutdown")}
+    )
+
+    threads = use_pool pool, 3
+
+    pool.shutdown
 
     kill_threads(threads)
 
@@ -390,7 +387,7 @@ class TestConnectionPool < Minitest::Test
   def test_raises_error_after_shutting_down
     pool = ConnectionPool.new(size: 1) { true }
 
-    pool.shutdown { }
+    pool.shutdown
 
     assert_raises ConnectionPool::PoolShuttingDownError do
       pool.checkout
@@ -400,47 +397,69 @@ class TestConnectionPool < Minitest::Test
   def test_runs_shutdown_block_asynchronously_if_connection_was_in_use
     recorders = []
 
-    pool = ConnectionPool.new(size: 3) do
-      Recorder.new.tap { |r| recorders << r }
-    end
+    pool = ConnectionPool.new(
+      size: 3,
+      connect: lambda { Recorder.new.tap { |r| recorders << r } },
+      disconnect: lambda { |recorder| recorder.do_work("shutdown") }
+    )
 
     threads = use_pool pool, 2
 
-    pool.checkout
+    conn = pool.checkout
 
-    pool.shutdown do |recorder|
-      recorder.do_work("shutdown")
-    end
+    pool.shutdown
 
     kill_threads(threads)
 
     assert_equal [["shutdown"], ["shutdown"], []], recorders.map { |r| r.calls }
 
-    pool.checkin
+    pool.checkin conn
 
     assert_equal [["shutdown"], ["shutdown"], ["shutdown"]], recorders.map { |r| r.calls }
   end
 
-  def test_raises_an_error_if_shutdown_is_called_without_a_block
-    pool = ConnectionPool.new(size: 1) { }
+  def test_max_age
+    recorders = []
 
-    assert_raises ArgumentError do
-      pool.shutdown
+    pool = ConnectionPool.new(
+      size: 3, max_age: 0.1,
+      connect: lambda { Recorder.new.tap { |r| recorders << r } },
+      disconnect: lambda { |conn| conn.do_work("shutdown") }
+    )
+
+    pool.with do |conn|
+      sleep(0.2)
+    end
+
+    pool.with do |conn|
+      sleep(0.2)
+    end
+
+    assert_equal [["shutdown"], ["shutdown"]], recorders.map { |r| r.calls }
+  end
+
+  def test_connect_proc
+    conn_cls = Struct.new("Conn")
+
+    pool = ConnectionPool.new(size: 1, connect: proc { conn_cls.new })
+    
+    pool.with do |conn|
+      assert_instance_of(conn_cls, conn)
     end
   end
 
   def test_shutdown_is_executed_for_all_connections_in_wrapped_pool
     recorders = []
 
-    wrapper = ConnectionPool::Wrapper.new(size: 3) do
-      Recorder.new.tap { |r| recorders << r }
-    end
+    wrapper = ConnectionPool::Wrapper.new(
+      size: 3,
+      connect: lambda { Recorder.new.tap { |r| recorders << r } },
+      disconnect: lambda { |recorder| recorder.do_work("shutdown") }
+    )
 
     threads = use_pool wrapper, 3
 
-    wrapper.pool_shutdown do |recorder|
-      recorder.do_work("shutdown")
-    end
+    wrapper.pool_shutdown
 
     kill_threads(threads)
 
@@ -449,7 +468,6 @@ class TestConnectionPool < Minitest::Test
 
   def test_wrapper_method_missing
     wrapper = ConnectionPool::Wrapper.new { NetworkConnection.new }
-
     assert_equal 1, wrapper.fast
   end
 

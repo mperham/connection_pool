@@ -8,6 +8,7 @@ require_relative 'monotonic_time'
 
 class ConnectionPool::PoolShuttingDownError < RuntimeError; end
 
+
 ##
 # The TimedStack manages a pool of homogeneous connections (or any resource
 # you wish to manage).  Connections are created lazily up to a given maximum
@@ -30,29 +31,29 @@ class ConnectionPool::PoolShuttingDownError < RuntimeError; end
 class ConnectionPool::TimedStack
 
   ##
-  # Creates a new pool with +size+ connections that are created from the given
-  # +block+.
+  # Creates a new pool with +size+ connections that are created by
+  # constructing the given +connection_wrapper+ class
 
-  def initialize(size = 0, &block)
-    @create_block = block
+  def initialize(connection_manager, size = 0)
     @created = 0
     @que = []
     @max = size
     @mutex = Mutex.new
     @resource = ConditionVariable.new
-    @shutdown_block = nil
+    @connection_manager = connection_manager
+    @shutting_down = false
   end
 
   ##
   # Returns +obj+ to the stack.  +options+ is ignored in TimedStack but may be
   # used by subclasses that extend TimedStack.
 
-  def push(obj, options = {})
+  def push(wrapper, options = {})
     @mutex.synchronize do
-      if @shutdown_block
-        @shutdown_block.call(obj)
+      if @shutting_down
+        wrapper.shutdown!
       else
-        store_connection obj, options
+        store_connection wrapper, options
       end
 
       @resource.broadcast
@@ -76,7 +77,7 @@ class ConnectionPool::TimedStack
     deadline = ConnectionPool.monotonic_time + timeout
     @mutex.synchronize do
       loop do
-        raise ConnectionPool::PoolShuttingDownError if @shutdown_block
+        raise ConnectionPool::PoolShuttingDownError if @shutting_down
         return fetch_connection(options) if connection_stored?(options)
 
         connection = try_create(options)
@@ -90,14 +91,24 @@ class ConnectionPool::TimedStack
   end
 
   ##
-  # Shuts down the TimedStack which prevents connections from being checked
-  # out.  The +block+ is called once for each connection on the stack.
-
-  def shutdown(&block)
-    raise ArgumentError, "shutdown must receive a block" unless block_given?
-
+  # Mark a connection as abandoned so that it cannot be used again.
+  # Will call the pre-configured shutdown proc, if provided.
+  #
+  def abandon(connection_wrapper)
     @mutex.synchronize do
-      @shutdown_block = block
+      connection_wrapper.shutdown!
+      @created -= 1
+    end
+  end
+
+  ##
+  # Shuts down the TimedStack which prevents connections from being checked
+  # out. Calls the shutdown program specified in the ConnectionPool
+  # initializer
+
+  def shutdown()
+    @mutex.synchronize do
+      @shutting_down = true
       @resource.broadcast
 
       shutdown_connections
@@ -116,6 +127,27 @@ class ConnectionPool::TimedStack
 
   def length
     @max - @created + @que.length
+  end
+
+  ##
+  # Pre-create all possible connections
+  def fill
+    while add_one
+    end
+  end
+
+  ##
+  # Add one connection to the queue
+  #
+  # Returns true iff a connection was successfully created
+  def add_one
+    connection = try_create
+    if connection.nil?
+      false
+    else
+      push(connection)
+      true
+    end
   end
 
   private
@@ -146,7 +178,7 @@ class ConnectionPool::TimedStack
   def shutdown_connections(options = nil)
     while connection_stored?(options)
       conn = fetch_connection(options)
-      @shutdown_block.call(conn)
+      conn.shutdown!
     end
   end
 
@@ -167,7 +199,7 @@ class ConnectionPool::TimedStack
 
   def try_create(options = nil)
     unless @created == @max
-      object = @create_block.call
+      object = @connection_manager.create_new()
       @created += 1
       object
     end

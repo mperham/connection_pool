@@ -2,11 +2,11 @@
 require "./lib/connection_pool/version"
 
 Gem::Specification.new do |s|
-  s.name        = "connection_pool"
+  s.name        = "connection_pool_with_max_age"
   s.version     = ConnectionPool::VERSION
   s.platform    = Gem::Platform::RUBY
-  s.authors     = ["Mike Perham", "Damian Janowski"]
-  s.email       = ["mperham@gmail.com", "damian@educabilia.com"]
+  s.authors     = ["Mike Perham", "Damian Janowski", "James Brown"]
+  s.email       = ["mperham@gmail.com", "damian@educabilia.com", "jbrown@easypost.com"]
   s.homepage    = "https://github.com/mperham/connection_pool"
   s.description = s.summary = %q{Generic connection pool for Ruby}
 

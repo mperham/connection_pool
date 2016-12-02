@@ -3,11 +3,14 @@ require_relative 'helper'
 class TestConnectionPoolTimedStack < Minitest::Test
 
   def setup
-    @stack = ConnectionPool::TimedStack.new { Object.new }
+    @manager = ConnectionPool::ConnectionManager.new(
+      lambda { Object.new }
+    )
+    @stack = ConnectionPool::TimedStack.new(@manager, 0)
   end
 
   def test_empty_eh
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(@manager, 1)
 
     refute_empty stack
 
@@ -21,7 +24,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_length
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(@manager, 1)
 
     assert_equal 1, stack.length
 
@@ -35,7 +38,10 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_object_creation_fails
-    stack = ConnectionPool::TimedStack.new(2) { raise 'failure' }
+    @manager.connect_with do
+      raise 'failure'
+    end
+    stack = ConnectionPool::TimedStack.new(@manager, 2)
 
     begin
       stack.pop
@@ -79,7 +85,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_full
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(@manager, 1)
 
     popped = stack.pop
 
@@ -110,7 +116,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_push
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(@manager, 1)
 
     conn = stack.pop
 
@@ -122,24 +128,28 @@ class TestConnectionPoolTimedStack < Minitest::Test
   def test_push_shutdown
     called = []
 
-    @stack.shutdown do |object|
+    @manager.disconnect_with do |object|
       called << object
     end
 
-    @stack.push Object.new
+    @stack.shutdown
+
+    @stack.push @manager.create_new
 
     refute_empty called
     assert_empty @stack
   end
 
   def test_shutdown
-    @stack.push Object.new
+    @stack.push @manager.create_new
 
     called = []
 
-    @stack.shutdown do |object|
+    @manager.disconnect_with do |object|
       called << object
     end
+
+    @stack.shutdown
 
     refute_empty called
     assert_empty @stack
