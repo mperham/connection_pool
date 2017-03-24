@@ -37,7 +37,7 @@ class ConnectionPool
   class Error < RuntimeError
   end
 
-  def self.wrap(options, &block)
+  def self.wrap(options = {}, &block)
     Wrapper.new(options, &block)
   end
 
