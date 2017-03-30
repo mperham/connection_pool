@@ -1,4 +1,7 @@
 *.gem
+*.swp
 .bundle
+.rdoc
 Gemfile.lock
+TAGS
 pkg/*
