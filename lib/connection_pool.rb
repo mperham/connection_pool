@@ -51,6 +51,7 @@ class ConnectionPool
 
     @available = TimedStack.new(@size, &block)
     @key = :"current-#{@available.object_id}"
+    @key_count = :"current-#{@available.object_id}-count"
   end
 
 if Thread.respond_to?(:handle_interrupt)
@@ -84,20 +85,26 @@ else
 end
 
   def checkout(options = {})
-    conn = if stack.empty?
-      timeout = options[:timeout] || @timeout
-      @available.pop(timeout: timeout)
+    if ::Thread.current[@key]
+      ::Thread.current[@key_count]+= 1
+      ::Thread.current[@key]
     else
-      stack.last
+      ::Thread.current[@key_count]= 1
+      ::Thread.current[@key]= @available.pop(options[:timeout] || @timeout)
     end
-
-    stack.push conn
-    conn
   end
 
   def checkin
-    conn = pop_connection # mutates stack, must be on its own line
-    @available.push(conn) if stack.empty?
+    if ::Thread.current[@key]
+      if ::Thread.current[@key_count] == 1
+        @available.push(::Thread.current[@key])
+        ::Thread.current[@key]= nil
+      else
+        ::Thread.current[@key_count]-= 1
+      end
+    else
+      raise ConnectionPool::Error, 'no connections are checked out'
+    end
 
     nil
   end
@@ -107,18 +114,6 @@ end
   end
 
   private
-
-  def pop_connection
-    if stack.empty?
-      raise ConnectionPool::Error, 'no connections are checked out'
-    else
-      stack.pop
-    end
-  end
-
-  def stack
-    ::Thread.current[@key] ||= []
-  end
 
   class Wrapper < ::BasicObject
     METHODS = [:with, :pool_shutdown]
