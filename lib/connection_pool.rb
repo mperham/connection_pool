@@ -113,11 +113,13 @@ end
     @available.shutdown(&block)
   end
 
-  def max_connection_count
-    @available.max
+  # Size of this connection pool
+  def size
+    @size
   end
 
-  def available_connection_count
+  # Number of pool entries available for checkout at this instant.
+  def available
     @available.length
   end
 
@@ -136,6 +138,14 @@ end
 
     def pool_shutdown(&block)
       @pool.shutdown(&block)
+    end
+
+    def pool_size
+      @pool.size
+    end
+
+    def pool_available
+      @pool.available
     end
 
     def respond_to?(id, *args)

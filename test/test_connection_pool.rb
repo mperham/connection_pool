@@ -502,15 +502,15 @@ class TestConnectionPool < Minitest::Test
   def test_stats_without_active_connection
     pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
 
-    assert_equal(2, pool.max_connection_count)
-    assert_equal(2, pool.available_connection_count)
+    assert_equal(2, pool.size)
+    assert_equal(2, pool.available)
   end
 
   def test_stats_with_active_connection
     pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
 
     pool.with do
-      assert_equal(1, pool.available_connection_count)
+      assert_equal(1, pool.available)
     end
   end
 end
