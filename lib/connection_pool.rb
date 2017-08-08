@@ -113,11 +113,12 @@ end
     @available.shutdown(&block)
   end
 
-  def stats
-    {
-      size: @available.max,
-      available: @available.length
-    }
+  def max_connection_count
+    @available.max
+  end
+
+  def available_connection_count
+    @available.length
   end
 
   private
