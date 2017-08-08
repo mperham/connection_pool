@@ -498,4 +498,18 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal ['with', 'wrapped'], recorder.calls
   end
+
+  def test_stats_without_active_connection
+    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+
+    assert_equal({ size: 2, available: 2 }, pool.stats)
+  end
+
+  def test_stats_with_active_connection
+    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+
+    pool.with do
+      assert_equal({ size: 2, available: 1 }, pool.stats)
+    end
+  end
 end

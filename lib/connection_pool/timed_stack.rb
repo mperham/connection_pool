@@ -28,6 +28,7 @@ class ConnectionPool::PoolShuttingDownError < RuntimeError; end
 #    #=> raises Timeout::Error after 5 seconds
 
 class ConnectionPool::TimedStack
+  attr_reader :max
 
   ##
   # Creates a new pool with +size+ connections that are created from the given
