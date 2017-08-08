@@ -113,6 +113,13 @@ end
     @available.shutdown(&block)
   end
 
+  def stats
+    {
+      size: @available.max,
+      available: @available.length
+    }
+  end
+
   private
 
   class Wrapper < ::BasicObject
