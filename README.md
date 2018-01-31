@@ -87,14 +87,27 @@ Shutting down a connection pool will block until all connections are checked in 
 **Note that shutting down is completely optional**; Ruby's garbage collector will reclaim
 unreferenced pools under normal circumstances.
 
+## Repair Connections
+
+You can configure auto repair for connections.
+
+```ruby
+cp = ConnectionPool.new { PG.connect(dbname: 'mydb') }
+cp.repair(try_auto_repair: true) { |conn| conn.reset }
+cp.health_check do |conn|
+  begin
+    conn.exec('SELECT 1')
+    true
+  rescue
+    false
+  end
+end
+```
 
 Notes
 -----
 
 - Connections are lazily created as needed.
-- There is no provision for repairing or checking the health of a connection;
-  connections should be self-repairing.  This is true of the Dalli and Redis
-  clients.
 - **WARNING**: Don't ever use `Timeout.timeout` in your Ruby code or you will see
   occasional silent corruption and mysterious errors.  The Timeout API is unsafe
   and cannot be used correctly, ever.  Use proper socket timeout options as

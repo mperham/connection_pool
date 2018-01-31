@@ -52,6 +52,18 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"current-#{@available.object_id}"
     @key_count = :"current-#{@available.object_id}-count"
+    @try_auto_repair = false
+    @health_check_block = nil
+    @repair_block = nil
+  end
+
+  def health_check(options = {}, &block)
+    @health_check_block = block
+  end
+
+  def repair(options = {}, &block)
+    @try_auto_repair = options.fetch(:try_auto_repair) || false
+    @repair_block = block
   end
 
 if Thread.respond_to?(:handle_interrupt)
@@ -87,11 +99,15 @@ end
   def checkout(options = {})
     if ::Thread.current[@key]
       ::Thread.current[@key_count]+= 1
-      ::Thread.current[@key]
+      conn = ::Thread.current[@key]
     else
       ::Thread.current[@key_count]= 1
-      ::Thread.current[@key]= @available.pop(options[:timeout] || @timeout)
+      conn = ::Thread.current[@key]= @available.pop(options[:timeout] || @timeout)
     end
+    if @try_auto_repair && !@health_check_block.nil? && !@repair_block.nil?
+      @repair_block.call(conn) unless @health_check_block.call(conn)
+    end
+    return conn
   end
 
   def checkin
