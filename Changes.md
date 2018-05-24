@@ -1,7 +1,7 @@
 connection\_pool changelog
 ---------------------------
 
-HEAD
+2.2.2
 ------
 
 - Add pool `size` and `available` accessors for metrics and monitoring
