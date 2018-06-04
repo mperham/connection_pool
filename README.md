@@ -87,13 +87,9 @@ Shutting down a connection pool will block until all connections are checked in 
 **Note that shutting down is completely optional**; Ruby's garbage collector will reclaim
 unreferenced pools under normal circumstances.
 
-## Current state
+## Current State
 
-There are several methods that returns information about pool.
-
-1. `#size` - current size of the pool
-
-2. `#available` - number of currently available connections
+There are several methods that return information about a pool.
 
 ```ruby
 cp = ConnectionPool.new(size: 10) { Redis.new }
