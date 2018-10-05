@@ -46,7 +46,7 @@ class ConnectionPool
 
     options = DEFAULTS.merge(options)
 
-    @size = options.fetch(:size).to_i
+    @size = Integer(options.fetch(:size))
     @timeout = options.fetch(:timeout)
 
     @available = TimedStack.new(@size, &block)

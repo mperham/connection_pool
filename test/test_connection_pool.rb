@@ -130,6 +130,15 @@ class TestConnectionPool < Minitest::Test
     assert_equal 1, pool.available
   end
 
+  def test_invalid_size
+    assert_raises ArgumentError, TypeError do
+      ConnectionPool.new(timeout: 0, size: nil) { Object.new }
+    end
+    assert_raises ArgumentError, TypeError do
+      ConnectionPool.new(timeout: 0, size: '') { Object.new }
+    end
+  end
+
   def test_checkout_ignores_timeout
     skip("Thread.handle_interrupt not available") unless Thread.respond_to?(:handle_interrupt)
 
