@@ -513,4 +513,13 @@ class TestConnectionPool < Minitest::Test
       assert_equal(1, pool.available)
     end
   end
+
+  def test_stats_with_string_size
+    pool = ConnectionPool.new(size: '2') { NetworkConnection.new }
+
+    pool.with do
+      assert_equal(2, pool.size)
+      assert_equal(1, pool.available)
+    end
+  end
 end
