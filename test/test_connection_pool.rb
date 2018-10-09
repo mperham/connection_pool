@@ -108,9 +108,11 @@ class TestConnectionPool < Minitest::Test
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
 
     pool.with do
-      assert_raises Timeout::Error do
-        Thread.new { pool.checkout }.join
-      end
+      Thread.new do
+        assert_raises Timeout::Error do
+          pool.checkout
+        end
+      end.join
     end
 
     assert Thread.new { pool.checkout }.join
@@ -195,9 +197,11 @@ class TestConnectionPool < Minitest::Test
     pool = ConnectionPool.new(timeout: 0, size: 1) { NetworkConnection.new }
     conn = pool.checkout
 
-    assert_raises Timeout::Error do
-      Thread.new { pool.checkout }.join
-    end
+    Thread.new do
+      assert_raises Timeout::Error do
+        pool.checkout
+      end
+    end.join
 
     pool.checkin
 
@@ -238,11 +242,11 @@ class TestConnectionPool < Minitest::Test
 
     pool.checkin
 
-    assert_raises Timeout::Error do
-      Thread.new do
+    Thread.new do
+      assert_raises Timeout::Error do
         pool.checkout
-      end.join
-    end
+      end
+    end.join
 
     pool.checkin
 
@@ -466,11 +470,11 @@ class TestConnectionPool < Minitest::Test
     wrapper = ConnectionPool::Wrapper.new(timeout: 0, size: 1) { Object.new }
 
     wrapper.with do
-      assert_raises Timeout::Error do
-        Thread.new do
+      Thread.new do
+        assert_raises Timeout::Error do
           wrapper.with { flunk 'connection checked out :(' }
-        end.join
-      end
+        end
+      end.join
     end
 
     assert Thread.new { wrapper.with { } }.join
