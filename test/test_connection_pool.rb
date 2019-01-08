@@ -141,9 +141,8 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
-  def test_checkout_ignores_timeout
-    skip("Thread.handle_interrupt not available") unless Thread.respond_to?(:handle_interrupt)
-
+  def test_handle_interrupt_ensures_checkin
+    # this test is broken on jruby as of 9.2.5.0
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
     def pool.checkout(options)
       sleep 0.015
