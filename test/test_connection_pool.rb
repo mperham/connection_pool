@@ -143,6 +143,8 @@ class TestConnectionPool < Minitest::Test
 
   def test_handle_interrupt_ensures_checkin
     # this test is broken on jruby as of 9.2.5.0
+    skip("handle_interrupt doesn't work on jruby") if defined?(::JRUBY_VERSION)
+
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
     def pool.checkout(options)
       sleep 0.015
