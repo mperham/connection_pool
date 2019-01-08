@@ -2,8 +2,8 @@ require_relative 'connection_pool/version'
 require_relative 'connection_pool/timed_stack'
 
 
-# Generic connection pool class for e.g. sharing a limited number of network connections
-# among many threads.  Note: Connections are lazily created.
+# Generic connection pool class for sharing a limited number of objects or network connections
+# among many threads.  Note: pool elements are lazily created.
 #
 # Example usage with block (faster):
 #
