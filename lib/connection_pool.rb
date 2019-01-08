@@ -50,13 +50,10 @@ class ConnectionPool
     @timeout = options.fetch(:timeout)
 
     @available = TimedStack.new(@size, &block)
-    @key = :"current-#{@available.object_id}"
-    @key_count = :"current-#{@available.object_id}-count"
+    @key = :"pool-#{@available.object_id}"
+    @key_count = :"pool-#{@available.object_id}-count"
   end
 
-if Thread.respond_to?(:handle_interrupt)
-
-  # MRI
   def with(options = {})
     Thread.handle_interrupt(Exception => :never) do
       conn = checkout(options)
@@ -70,27 +67,13 @@ if Thread.respond_to?(:handle_interrupt)
     end
   end
 
-else
-
-  # jruby 1.7.x
-  def with(options = {})
-    conn = checkout(options)
-    begin
-      yield conn
-    ensure
-      checkin
-    end
-  end
-
-end
-
   def checkout(options = {})
     if ::Thread.current[@key]
-      ::Thread.current[@key_count]+= 1
+      ::Thread.current[@key_count] += 1
       ::Thread.current[@key]
     else
-      ::Thread.current[@key_count]= 1
-      ::Thread.current[@key]= @available.pop(options[:timeout] || @timeout)
+      ::Thread.current[@key_count] = 1
+      ::Thread.current[@key] = @available.pop(options[:timeout] || @timeout)
     end
   end
 
@@ -98,9 +81,9 @@ end
     if ::Thread.current[@key]
       if ::Thread.current[@key_count] == 1
         @available.push(::Thread.current[@key])
-        ::Thread.current[@key]= nil
+        ::Thread.current[@key] = nil
       else
-        ::Thread.current[@key_count]-= 1
+        ::Thread.current[@key_count] -= 1
       end
     else
       raise ConnectionPool::Error, 'no connections are checked out'
