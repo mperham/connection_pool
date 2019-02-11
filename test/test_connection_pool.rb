@@ -142,9 +142,6 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_handle_interrupt_ensures_checkin
-    # this test is broken on jruby as of 9.2.5.0
-    skip("handle_interrupt doesn't work on jruby") if defined?(::JRUBY_VERSION)
-
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
     def pool.checkout(options)
       sleep 0.015
@@ -152,7 +149,8 @@ class TestConnectionPool < Minitest::Test
     end
 
     did_something = false
-    assert_raises Timeout::Error do
+
+    action = lambda do
       Timeout.timeout(0.01) do
         pool.with do |obj|
           did_something = true
@@ -164,7 +162,22 @@ class TestConnectionPool < Minitest::Test
         end
       end
     end
-    assert did_something
+
+    if RUBY_ENGINE == "ruby"
+      # These asserts rely on the Ruby implementation reaching `did_something =
+      # true` before the interrupt is detected by the thread. Interrupt
+      # detection timing is implementation-specific in practice, with JRuby,
+      # Rubinius, and TruffleRuby all having different interrupt timings to MRI.
+      # In fact they generally detect interrupts more quickly than MRI, so they
+      # may not reach `did_something = true` before detecting the interrupt.
+
+      assert_raises Timeout::Error, &action
+
+      assert did_something
+    else
+      action.call
+    end
+
     assert_equal 1, pool.available
   end
 
