@@ -6,6 +6,7 @@ HEAD
 
 - Use monotonic clock present in all modern Rubies [Tero Tasanen, #109]
 - Remove code hacks necessary for JRuby 1.7
+- Expose `pool` from ConnectionPool::Wrapper [Thomas Lecavelier, #113]
 
 2.2.2
 ------
