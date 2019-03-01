@@ -109,13 +109,13 @@ class ConnectionPool
   private
 
   class Wrapper < ::BasicObject
-    METHODS = [:with, :pool_shutdown, :pool]
+    METHODS = [:with, :pool_shutdown, :wrapped_pool]
 
     def initialize(options = {}, &block)
       @pool = options.fetch(:pool) { ::ConnectionPool.new(options, &block) }
     end
 
-    def pool
+    def wrapped_pool
       @pool
     end
 
