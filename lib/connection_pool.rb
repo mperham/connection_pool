@@ -32,7 +32,11 @@ require_relative 'connection_pool/timed_stack'
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5}
+  DEFAULTS = {
+    size: 5,
+    timeout: 5,
+    healthcheck: ->(_) { true }
+  }
 
   class Error < RuntimeError
   end
@@ -48,8 +52,9 @@ class ConnectionPool
 
     @size = Integer(options.fetch(:size))
     @timeout = options.fetch(:timeout)
+    @healthcheck = options.fetch(:healthcheck)
 
-    @available = TimedStack.new(@size, &block)
+    @available = TimedStack.new(@size, @healthcheck, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
   end

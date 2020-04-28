@@ -118,6 +118,25 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { pool.checkout }.join
   end
 
+  def test_with_healthcheck
+    # Healthcheck that only passes if the object's size is < 2
+    check = ->(x) { x.size < 2 }
+    pool = ConnectionPool.new(timeout: 0, size: 1, healthcheck: check) { [] }
+
+    # Add something to the array
+    pool.with { |x| x << 1 }
+
+    # Array exists and has 1 item (which is less than 2)
+    pool.with { |x| assert x.size == 1 }
+
+    # Add something else to the array
+    pool.with { |x| x << 1 }
+
+    # Now a new Array next checkout...
+    # Healthcheck abandoned the previous pool member (for GC)
+    pool.with { |x| assert x.empty? }
+  end
+
   def test_with_timeout
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
 
