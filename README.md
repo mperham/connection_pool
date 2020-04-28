@@ -71,6 +71,40 @@ end
 Once you've ported your entire system to use `with`, you can simply remove
 `Wrapper` and use the simpler and faster `ConnectionPool`.
 
+## Healthchecks for Pool Members
+
+When defining a pool, `ConnectionPool` supports a `:healthcheck` parameter that
+accepts a [`Lambda`](https://www.rubyguides.com/2016/02/ruby-procs-and-lambdas/#What_is_a_Lambda).
+This lambda must accept exactly one parameter: a checked-out connection which is
+tested immediately before being returned. Any code that returns something
+[_truthy_](https://www.rubyguides.com/2019/02/ruby-booleans/) can be used as a
+healthcheck.
+
+```ruby
+cp = ConnectionPool.new(healthcheck: ->(c) { c.connected? }) { SomeClient.new }
+cp.with do |conn|
+  puts conn.object_id # => 70345349287660
+  conn.do_things
+end
+
+cp.with do |conn|
+  puts conn.object_id # => 70345349287660
+  conn.do_more_things
+end
+
+# ... Time goes by, connection is disconnected ...
+
+cp.with do |conn|
+  # Healthcheck fails, new pool member returned
+  puts conn.object_id # => 70345349614240
+  conn.do_things
+end
+```
+
+In the above code, `#connected?` is run on the instance of `SomeClient` just
+before it is returned. If it returns `true`, then the object is passed along.
+If it is `false` or `nil`, it is abandoned and a new connection is created and
+returned.
 
 ## Shutdown
 
