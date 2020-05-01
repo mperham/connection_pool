@@ -17,15 +17,13 @@ class ConnectionPoolReaper
     @mutex.synchronize do
       required_last_access = Time.now - @reap_after
 
-      to_remove = []
+      @access_log.delete_if do |connection, last_access|
+        if last_access < required_last_access
+          @connection_pool.remove_connection(connection)
+          connection.close if connection.respond_to?(:close)
 
-      @access_log.delete_if do |c, last_access|
-        last_access < required_last_access && to_remove << c
-      end
-
-      to_remove.each do |connection|
-        @connection_pool.remove_connection(connection)
-        connection.close if connection.respond_to?(:close)
+          true
+        end
       end
     end
   end
