@@ -568,6 +568,36 @@ class TestConnectionPool < Minitest::Test
     pool.remove_connection(conn)
     pool.with{  }
 
-    assert_equal created, 2
+    assert_equal 2, created
   end
+
+  def test_reaping
+    created = 0
+    pool = ConnectionPool.new(timeout:0, size: 1, reap_after: 1, reaping_frequency: 1) do
+      created += 1
+      NetworkConnection.new
+    end
+
+    pool.with{}
+    sleep 2
+    pool.with{}
+
+    assert_equal 2, created
+
+    # Don't forget to cleanup
+    pool.shutdown {  }
+  end
+
+  def test_reaping_tread_leakage
+    live_threads = Thread.list.count(:alive?)
+
+    pool = ConnectionPool.new(timeout:0, size: 1, reap_after: 1, reaping_frequency: 1) do
+      NetworkConnection.new
+    end
+
+    pool.shutdown {  }
+
+    assert_equal live_threads, Thread.list.count(:alive?)
+  end
+
 end

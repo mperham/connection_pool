@@ -7,25 +7,25 @@ class ConnectionPoolReaper
     @connection_pool = connection_pool
     @access_log = {}
     @mutex = Mutex.new
-
-    start_reaping_thread!
   end
 
-  def mark_connection_as_used(connection, used_at: Time.now)
-    @mutex.synchronize { @access_log[connection] = used_at }
+  def mark_connection_as_used(connection)
+    @mutex.synchronize { @access_log[connection] = Time.now }
   end
 
-  def reap_connections!(connection)
+  def reap_connections!
     @mutex.synchronize do
       required_last_access = Time.now - @reap_after
 
-      to_remove = @access_log.delete_if do |_, last_access|
-        last_access < required_last_access
+      to_remove = []
+
+      @access_log.delete_if do |c, last_access|
+        last_access < required_last_access && to_remove << c
       end
 
-      to_remove.each_key do |connection|
+      to_remove.each do |connection|
         @connection_pool.remove_connection(connection)
-        connection.close if connection.respond_to(:close)
+        connection.close if connection.respond_to?(:close)
       end
     end
   end
