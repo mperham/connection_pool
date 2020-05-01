@@ -1,5 +1,6 @@
 require_relative 'connection_pool/version'
 require_relative 'connection_pool/timed_stack'
+require_relative 'connection_pool/reaper'
 
 
 # Generic connection pool class for sharing a limited number of objects or network connections
@@ -32,7 +33,7 @@ require_relative 'connection_pool/timed_stack'
 # - :timeout - amount of time to wait for a connection if none currently available, defaults to 5 seconds
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5}
+  DEFAULTS = {size: 5, timeout: 5, reaping_frequency: nil, reap_after: 60}
 
   class Error < RuntimeError
   end
@@ -52,6 +53,14 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
+
+    if options[:reaping_frequency] && options[:reap_after]
+      @reaper = ConnectionPoolReaper.new(
+        connection_pool: self,
+        reaping_frequency: options[:reaping_frequency],
+        reap_after: options[:reap_after]
+      )
+    end
   end
 
   def with(options = {})
@@ -68,13 +77,17 @@ class ConnectionPool
   end
 
   def checkout(options = {})
-    if ::Thread.current[@key]
-      ::Thread.current[@key_count] += 1
-      ::Thread.current[@key]
-    else
-      ::Thread.current[@key_count] = 1
-      ::Thread.current[@key] = @available.pop(options[:timeout] || @timeout)
-    end
+    connection = if ::Thread.current[@key]
+                   ::Thread.current[@key_count] += 1
+                   ::Thread.current[@key]
+                 else
+                   ::Thread.current[@key_count] = 1
+                   ::Thread.current[@key] = @available.pop(options[:timeout] || @timeout)
+                 end
+
+    @reaper.mark_connection_as_used(connection) if defined?(@reaper)
+
+    connection
   end
 
   def checkin
@@ -99,6 +112,7 @@ class ConnectionPool
   end
 
   def shutdown(&block)
+    @reaper.shutdown if defined?(@reaper)
     @available.shutdown(&block)
   end
 
