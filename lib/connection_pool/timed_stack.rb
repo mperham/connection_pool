@@ -117,6 +117,12 @@ class ConnectionPool::TimedStack
     @max - @created + @que.length
   end
 
+  def remove_connection(conn)
+    @mutex.synchronize do
+      @created -= 1 if @que.delete(conn)
+    end
+  end
+
   private
 
   def current_time

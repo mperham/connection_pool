@@ -554,4 +554,20 @@ class TestConnectionPool < Minitest::Test
       assert_equal(1, pool.available)
     end
   end
+
+  def test_removing_and_replacing_connections
+    created = 0
+    pool = ConnectionPool.new(timeout:0, size: 1) do
+      created += 1
+      NetworkConnection.new
+    end
+
+    conn = pool.checkout
+    pool.checkin
+
+    pool.remove_connection(conn)
+    pool.with{  }
+
+    assert_equal created, 2
+  end
 end

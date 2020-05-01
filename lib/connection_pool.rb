@@ -92,6 +92,12 @@ class ConnectionPool
     nil
   end
 
+  # Removes a connection from the pool and makes the space available again
+  # connection may not currently be checked out of the queue.
+  def remove_connection(conn)
+    @available.remove_connection(conn)
+  end
+
   def shutdown(&block)
     @available.shutdown(&block)
   end
