@@ -7,6 +7,6 @@ rvm:
   - 2.5
   - 2.6
   - 2.7
-  - jruby-9.2.8.0
+  - jruby-9.2.11.1
 jdk:
   - openjdk8
