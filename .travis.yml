@@ -9,4 +9,4 @@ rvm:
   - 2.7
   - jruby
 jdk:
-  - openjdk8
+  - openjdk11
