@@ -51,7 +51,7 @@ You can use `ConnectionPool::Wrapper` to wrap a single global connection,
 making it easier to migrate existing connection code over time:
 
 ``` ruby
-$redis = ConnectionPool::Wrapper.new(size: 5, timeout: 3) { Redis.connect }
+$redis = ConnectionPool::Wrapper.new(size: 5, timeout: 3) { Redis.new }
 $redis.sadd('foo', 1)
 $redis.smembers('foo')
 ```
