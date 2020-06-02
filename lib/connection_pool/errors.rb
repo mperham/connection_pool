@@ -1,4 +1,4 @@
-require 'timeout'
+require "timeout"
 
 class ConnectionPool
   class Error < RuntimeError; end

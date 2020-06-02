@@ -1,4 +1,4 @@
-require 'connection_pool/errors'
+require "connection_pool/errors"
 
 ##
 # The TimedStack manages a pool of homogeneous connections (or any resource
@@ -51,7 +51,7 @@ class ConnectionPool::TimedStack
       @resource.broadcast
     end
   end
-  alias_method :<<, :push
+  alias << push
 
   ##
   # Retrieves a connection from the stack.  If a connection is available it is

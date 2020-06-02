@@ -1,7 +1,6 @@
-require_relative 'helper'
+require_relative "helper"
 
 class TestConnectionPoolTimedStack < Minitest::Test
-
   def setup
     @stack = ConnectionPool::TimedStack.new { Object.new }
   end
@@ -35,18 +34,18 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_object_creation_fails
-    stack = ConnectionPool::TimedStack.new(2) { raise 'failure' }
+    stack = ConnectionPool::TimedStack.new(2) { raise "failure" }
 
     begin
       stack.pop
     rescue => error
-      assert_equal 'failure', error.message
+      assert_equal "failure", error.message
     end
 
     begin
       stack.pop
     rescue => error
-      assert_equal 'failure', error.message
+      assert_equal "failure", error.message
     end
 
     refute_empty stack
@@ -63,19 +62,13 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_empty
-    e = assert_raises Timeout::Error do
-      @stack.pop timeout: 0
-    end
-
-    assert_equal 'Waited 0 sec', e.message
+    e = assert_raises(ConnectionPool::TimeoutError) { @stack.pop timeout: 0 }
+    assert_equal "Waited 0 sec", e.message
   end
 
   def test_pop_empty_2_0_compatibility
-    e = assert_raises Timeout::Error do
-      @stack.pop 0
-    end
-
-    assert_equal 'Waited 0 sec', e.message
+    e = assert_raises(Timeout::Error) { @stack.pop 0 }
+    assert_equal "Waited 0 sec", e.message
   end
 
   def test_pop_full
@@ -88,11 +81,11 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_wait
-    thread = Thread.start do
+    thread = Thread.start {
       @stack.pop
-    end
+    }
 
-    Thread.pass while thread.status == 'run'
+    Thread.pass while thread.status == "run"
 
     object = Object.new
 
@@ -102,7 +95,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_shutdown
-    @stack.shutdown { }
+    @stack.shutdown {}
 
     assert_raises ConnectionPool::PoolShuttingDownError do
       @stack.pop
@@ -144,6 +137,4 @@ class TestConnectionPoolTimedStack < Minitest::Test
     refute_empty called
     assert_empty @stack
   end
-
 end
-

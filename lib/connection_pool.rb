@@ -1,8 +1,7 @@
-require 'connection_pool/version'
-require 'connection_pool/errors'
-require 'connection_pool/timed_stack'
-require 'connection_pool/wrapper'
-
+require "connection_pool/version"
+require "connection_pool/errors"
+require "connection_pool/timed_stack"
+require "connection_pool/wrapper"
 
 # Generic connection pool class for sharing a limited number of objects or network connections
 # among many threads.  Note: pool elements are lazily created.
@@ -41,7 +40,7 @@ class ConnectionPool
   end
 
   def initialize(options = {}, &block)
-    raise ArgumentError, 'Connection pool requires a block' unless block
+    raise ArgumentError, "Connection pool requires a block" unless block
 
     options = DEFAULTS.merge(options)
 
@@ -85,7 +84,7 @@ class ConnectionPool
         ::Thread.current[@key_count] -= 1
       end
     else
-      raise ConnectionPool::Error, 'no connections are checked out'
+      raise ConnectionPool::Error, "no connections are checked out"
     end
 
     nil
@@ -96,52 +95,10 @@ class ConnectionPool
   end
 
   # Size of this connection pool
-  def size
-    @size
-  end
+  attr_reader :size
 
   # Number of pool entries available for checkout at this instant.
   def available
     @available.length
-  end
-
-  private
-
-  class Wrapper < ::BasicObject
-    METHODS = [:with, :pool_shutdown, :wrapped_pool]
-
-    def initialize(options = {}, &block)
-      @pool = options.fetch(:pool) { ::ConnectionPool.new(options, &block) }
-    end
-
-    def wrapped_pool
-      @pool
-    end
-
-    def with(&block)
-      @pool.with(&block)
-    end
-
-    def pool_shutdown(&block)
-      @pool.shutdown(&block)
-    end
-
-    def pool_size
-      @pool.size
-    end
-
-    def pool_available
-      @pool.available
-    end
-
-    def respond_to?(id, *args)
-      METHODS.include?(id) || with { |c| c.respond_to?(id, *args) }
-    end
-
-    def method_missing(name, *args, &block)
-      with do |connection|
-        connection.send(name, *args, &block)
-      end
-    end
   end
 end
