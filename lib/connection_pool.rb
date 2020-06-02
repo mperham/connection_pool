@@ -1,5 +1,6 @@
-require_relative 'connection_pool/version'
-require_relative 'connection_pool/timed_stack'
+require 'connection_pool/version'
+require 'connection_pool/errors'
+require 'connection_pool/timed_stack'
 
 
 # Generic connection pool class for sharing a limited number of objects or network connections
@@ -33,9 +34,6 @@ require_relative 'connection_pool/timed_stack'
 #
 class ConnectionPool
   DEFAULTS = {size: 5, timeout: 5}
-
-  class Error < RuntimeError
-  end
 
   def self.wrap(options, &block)
     Wrapper.new(options, &block)

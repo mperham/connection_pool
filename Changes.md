@@ -1,9 +1,9 @@
-connection\_pool changelog
----------------------------
+# connection_pool Changelog
 
-HEAD
+2.2.3
 ------
 
+- Pool now throws `ConnectionPool::TimeoutError` on timeout. [#130]
 - Use monotonic clock present in all modern Rubies [Tero Tasanen, #109]
 - Remove code hacks necessary for JRuby 1.7
 - Expose wrapped pool from ConnectionPool::Wrapper [Thomas Lecavelier, #113]

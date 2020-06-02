@@ -1,10 +1,4 @@
-require 'timeout'
-
-##
-# Raised when you attempt to retrieve a connection from a pool that has been
-# shut down.
-
-class ConnectionPool::PoolShuttingDownError < RuntimeError; end
+require 'connection_pool/errors'
 
 ##
 # The TimedStack manages a pool of homogeneous connections (or any resource
@@ -82,7 +76,7 @@ class ConnectionPool::TimedStack
         return connection if connection
 
         to_wait = deadline - current_time
-        raise Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
+        raise ConnectionPool::TimeoutError, "Waited #{timeout} sec" if to_wait <= 0
         @resource.wait(@mutex, to_wait)
       end
     end
