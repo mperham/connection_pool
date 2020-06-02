@@ -1,7 +1,11 @@
+require "timeout"
 require "connection_pool/version"
-require "connection_pool/errors"
-require "connection_pool/timed_stack"
-require "connection_pool/wrapper"
+
+class ConnectionPool
+  class Error < ::RuntimeError; end
+  class PoolShuttingDownError < ::ConnectionPool::Error; end
+  class TimeoutError < ::Timeout::Error; end
+end
 
 # Generic connection pool class for sharing a limited number of objects or network connections
 # among many threads.  Note: pool elements are lazily created.
@@ -9,7 +13,6 @@ require "connection_pool/wrapper"
 # Example usage with block (faster):
 #
 #    @pool = ConnectionPool.new { Redis.new }
-#
 #    @pool.with do |redis|
 #      redis.lpop('my-list') if redis.llen('my-list') > 0
 #    end
@@ -102,3 +105,6 @@ class ConnectionPool
     @available.length
   end
 end
+
+require "connection_pool/timed_stack"
+require "connection_pool/wrapper"

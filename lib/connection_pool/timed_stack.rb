@@ -1,5 +1,3 @@
-require "connection_pool/errors"
-
 ##
 # The TimedStack manages a pool of homogeneous connections (or any resource
 # you wish to manage).  Connections are created lazily up to a given maximum
