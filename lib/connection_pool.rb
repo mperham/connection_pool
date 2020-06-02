@@ -1,6 +1,7 @@
 require 'connection_pool/version'
 require 'connection_pool/errors'
 require 'connection_pool/timed_stack'
+require 'connection_pool/wrapper'
 
 
 # Generic connection pool class for sharing a limited number of objects or network connections
