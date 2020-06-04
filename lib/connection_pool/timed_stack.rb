@@ -15,7 +15,7 @@
 #
 #    conn = ts.pop
 #    ts.pop timeout: 5
-#    #=> raises Timeout::Error after 5 seconds
+#    #=> raises ConnectionPool::TimeoutError after 5 seconds
 
 class ConnectionPool::TimedStack
   attr_reader :max
@@ -54,7 +54,7 @@ class ConnectionPool::TimedStack
   ##
   # Retrieves a connection from the stack.  If a connection is available it is
   # immediately returned.  If no connection is available within the given
-  # timeout a Timeout::Error is raised.
+  # timeout a ConnectionPool::TimeoutError is raised.
   #
   # +:timeout+ is the only checked entry in +options+ and is preferred over
   # the +timeout+ argument (which will be removed in a future release).  Other
