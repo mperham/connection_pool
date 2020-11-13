@@ -83,6 +83,7 @@ class ConnectionPool
       if ::Thread.current[@key_count] == 1
         @available.push(::Thread.current[@key])
         ::Thread.current[@key] = nil
+        ::Thread.current[@key_count] = nil
       else
         ::Thread.current[@key_count] -= 1
       end
