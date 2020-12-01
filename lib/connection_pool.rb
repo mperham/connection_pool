@@ -67,6 +67,7 @@ class ConnectionPool
       end
     end
   end
+  alias then with
 
   def checkout(options = {})
     if ::Thread.current[@key]

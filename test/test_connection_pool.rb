@@ -117,6 +117,12 @@ class TestConnectionPool < Minitest::Test
     assert Thread.new { pool.checkout }.join
   end
 
+  def test_then
+    pool = ConnectionPool.new { Object.new }
+
+    assert_equal pool.method(:then), pool.method(:with)
+  end
+
   def test_with_timeout
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
 
