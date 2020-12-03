@@ -27,6 +27,14 @@ $memcached.with do |conn|
 end
 ```
 
+You can also use `ConnectionPool#then` to support _both_ a
+connection pool and a raw client (requires Ruby 2.5+).
+
+```ruby
+# Compatible with a raw Redis::Client, and ConnectionPool Redis
+$redis.then { |r| r.set 'foo' 'bar' }
+```
+
 If all the objects in the connection pool are in use, `with` will block
 until one becomes available.  If no object is available within `:timeout` seconds,
 `with` will raise a `Timeout::Error`.
