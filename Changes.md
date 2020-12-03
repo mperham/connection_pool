@@ -1,5 +1,11 @@
 # connection_pool Changelog
 
+HEAD
+------
+
+- Add `then` as a way to use a pool or a bare connection with the
+  same code path [#138]
+
 2.2.3
 ------
 
