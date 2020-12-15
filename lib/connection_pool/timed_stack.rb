@@ -81,8 +81,9 @@ class ConnectionPool::TimedStack
   end
 
   ##
-  # Shuts down the TimedStack which prevents connections from being checked
-  # out.  The +block+ is called once for each connection on the stack.
+  # Shuts down the TimedStack by passing each connection to +block+ and then
+  # removing it from the pool. Attempting to checkout a connection after
+  # shutdown will raise +ConnectionPool::PoolShuttingDownError+.
 
   def shutdown(&block)
     raise ArgumentError, "shutdown must receive a block" unless block_given?

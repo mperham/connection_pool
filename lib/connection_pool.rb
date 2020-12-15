@@ -95,6 +95,11 @@ class ConnectionPool
     nil
   end
 
+  ##
+  # Shuts down the ConnectionPool by passing each connection to +block+ and
+  # then removing it from the pool. Attempting to checkout a connection after
+  # shutdown will raise +ConnectionPool::PoolShuttingDownError+.
+
   def shutdown(&block)
     @available.shutdown(&block)
   end
