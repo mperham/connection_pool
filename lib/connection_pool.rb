@@ -55,7 +55,6 @@ class ConnectionPool
     @key_count = :"pool-#{@available.object_id}-count"
   end
 
-  # TODO: Question
   def with(options = {})
     Thread.handle_interrupt(Exception => :never) do
       conn = checkout(options)
