@@ -104,6 +104,15 @@ class ConnectionPool
     @available.shutdown(&block)
   end
 
+  ##
+  # Reloads the ConnectionPool by passing each connection to +block+ and then
+  # removing it the pool. Subsequent checkouts will create new connections as
+  # needed.
+
+  def reload(&block)
+    @available.shutdown(reload: true, &block)
+  end
+
   # Size of this connection pool
   attr_reader :size
 

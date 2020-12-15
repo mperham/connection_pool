@@ -83,9 +83,10 @@ class ConnectionPool::TimedStack
   ##
   # Shuts down the TimedStack by passing each connection to +block+ and then
   # removing it from the pool. Attempting to checkout a connection after
-  # shutdown will raise +ConnectionPool::PoolShuttingDownError+.
+  # shutdown will raise +ConnectionPool::PoolShuttingDownError+ unless
+  # +:reload+ is +true+.
 
-  def shutdown(&block)
+  def shutdown(reload: false, &block)
     raise ArgumentError, "shutdown must receive a block" unless block_given?
 
     @mutex.synchronize do
@@ -93,6 +94,7 @@ class ConnectionPool::TimedStack
       @resource.broadcast
 
       shutdown_connections
+      @shutdown_block = nil if reload
     end
   end
 
@@ -144,6 +146,7 @@ class ConnectionPool::TimedStack
       conn = fetch_connection(options)
       @shutdown_block.call(conn)
     end
+    @created = 0
   end
 
   ##
