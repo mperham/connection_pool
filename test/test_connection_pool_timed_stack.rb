@@ -102,6 +102,16 @@ class TestConnectionPoolTimedStack < Minitest::Test
     end
   end
 
+  def test_pop_shutdown_reload
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    object = stack.pop
+    stack.push(object)
+
+    stack.shutdown(reload: true) {}
+
+    refute_equal object, stack.pop
+  end
+
   def test_push
     stack = ConnectionPool::TimedStack.new(1) { Object.new }
 

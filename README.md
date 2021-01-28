@@ -95,6 +95,22 @@ Shutting down a connection pool will block until all connections are checked in 
 **Note that shutting down is completely optional**; Ruby's garbage collector will reclaim
 unreferenced pools under normal circumstances.
 
+## Reload
+
+You can reload a ConnectionPool instance in the case it is desired to close all
+connections to the pool and, unlike `shutdown`, afterwards recreate connections
+so the pool may continue to be used. Reloading may be useful after forking the
+process.
+
+```ruby
+cp = ConnectionPool.new { Redis.new }
+cp.reload { |conn| conn.quit }
+cp.with { |conn| conn.get('some-count') }
+```
+
+Like `shutdown`, this will block until all connections are checked in and
+closed.
+
 ## Current State
 
 There are several methods that return information about a pool.
