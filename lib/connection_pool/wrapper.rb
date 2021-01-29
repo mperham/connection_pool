@@ -33,6 +33,15 @@ class ConnectionPool
     # rubocop:disable Style/MethodMissingSuper
     # rubocop:disable Style/MissingRespondToMissing
     def method_missing(name, *args, &block)
+      eigen_class = class << self; self; end
+      eigen_class.class_eval <<-RUBY
+        def #{name}(*args, &block)
+          with do |connection|
+            connection.#{name}(*args, &block)
+          end
+        end
+      RUBY
+
       with do |connection|
         connection.send(name, *args, &block)
       end
