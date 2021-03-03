@@ -8,8 +8,8 @@ class TestConnectionPool < Minitest::Test
       @x = 0
     end
 
-    def do_something
-      @x += 1
+    def do_something(*_args, increment: 1)
+      @x += increment
       sleep SLEEP_TIME
       @x
     end
@@ -332,6 +332,7 @@ class TestConnectionPool < Minitest::Test
     assert_equal 2, pool.do_something
     assert_equal 5, pool.do_something_with_block { 3 }
     assert_equal 6, pool.with { |net| net.fast }
+    assert_equal 8, pool.do_something(increment: 2)
   end
 
   def test_passthru_respond_to

@@ -32,9 +32,17 @@ class ConnectionPool
 
     # rubocop:disable Style/MethodMissingSuper
     # rubocop:disable Style/MissingRespondToMissing
-    def method_missing(name, *args, &block)
-      with do |connection|
-        connection.send(name, *args, &block)
+    if ::RUBY_VERSION >= "3.0.0"
+      def method_missing(name, *args, **kwargs, &block)
+        with do |connection|
+          connection.send(name, *args, **kwargs, &block)
+        end
+      end
+    else
+      def method_missing(name, *args, &block)
+        with do |connection|
+          connection.send(name, *args, &block)
+        end
       end
     end
     # rubocop:enable Style/MethodMissingSuper
