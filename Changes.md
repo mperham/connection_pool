@@ -1,11 +1,10 @@
 # connection_pool Changelog
 
-HEAD
+2.2.4
 ------
 
 - Add `reload` to close all connections, recreating them afterwards [Andrew Marshall, #140]
-- Add `then` as a way to use a pool or a bare connection with the
-  same code path [#138]
+- Add `then` as a way to use a pool or a bare connection with the same code path [#138]
 
 2.2.3
 ------

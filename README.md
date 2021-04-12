@@ -27,6 +27,10 @@ $memcached.with do |conn|
 end
 ```
 
+If all the objects in the connection pool are in use, `with` will block
+until one becomes available.  If no object is available within `:timeout` seconds,
+`with` will raise a `Timeout::Error`.
+
 You can also use `ConnectionPool#then` to support _both_ a
 connection pool and a raw client (requires Ruby 2.5+).
 
@@ -34,10 +38,6 @@ connection pool and a raw client (requires Ruby 2.5+).
 # Compatible with a raw Redis::Client, and ConnectionPool Redis
 $redis.then { |r| r.set 'foo' 'bar' }
 ```
-
-If all the objects in the connection pool are in use, `with` will block
-until one becomes available.  If no object is available within `:timeout` seconds,
-`with` will raise a `Timeout::Error`.
 
 Optionally, you can specify a timeout override using the with-block semantics:
 
@@ -131,15 +131,15 @@ Notes
 
 - Connections are lazily created as needed.
 - There is no provision for repairing or checking the health of a connection;
-  connections should be self-repairing.  This is true of the Dalli and Redis
+  connections should be self-repairing. This is true of the Dalli and Redis
   clients.
 - **WARNING**: Don't ever use `Timeout.timeout` in your Ruby code or you will see
-  occasional silent corruption and mysterious errors.  The Timeout API is unsafe
-  and cannot be used correctly, ever.  Use proper socket timeout options as
+  occasional silent corruption and mysterious errors. The Timeout API is unsafe
+  and cannot be used correctly, ever. Use proper socket timeout options as
   exposed by Net::HTTP, Redis, Dalli, etc.
 
 
 Author
 ------
 
-Mike Perham, [@mperham](https://twitter.com/mperham), <http://mikeperham.com>
+Mike Perham, [@getajobmike](https://twitter.com/getajobmike), <https://www.mikeperham.com>
