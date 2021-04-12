@@ -5,10 +5,15 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["2.4", "2.5", "2.6", "2.7", "3.0", "jruby", "truffleruby"]
+        ruby: ["2.4", "2.5", "2.6", "2.7", "3.0", "jruby"]
+        experimental: [false]
+        include:
+        - ruby: "truffleruby"
+          experimental: true
     steps:
     - uses: actions/checkout@v2
     - uses: ruby/setup-ruby@v1
