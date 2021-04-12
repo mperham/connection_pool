@@ -1,6 +1,6 @@
 connection\_pool
 =================
-[![Build Status](https://travis-ci.org/mperham/connection_pool.svg)](https://travis-ci.org/mperham/connection_pool)
+[![Build Status](https://github.com/mperham/connection_pool/actions/workflows/ci.yml/badge.svg)](https://github.com/mperham/connection_pool/actions/workflows/ci.yml)
 
 Generic connection pooling for Ruby.
 
