@@ -53,17 +53,22 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
+    @withdraw = nil
   end
 
   def with(options = {})
     Thread.handle_interrupt(Exception => :never) do
       conn = checkout(options)
+      exception = nil
       begin
         Thread.handle_interrupt(Exception => :immediate) do
           yield conn
         end
+      rescue => e
+        exception = e
+        raise
       ensure
-        checkin
+        checkin(exception)
       end
     end
   end
@@ -79,10 +84,14 @@ class ConnectionPool
     end
   end
 
-  def checkin
+  def checkin(exception = nil)
     if ::Thread.current[@key]
       if ::Thread.current[@key_count] == 1
-        @available.push(::Thread.current[@key])
+        if @withdraw && exception
+          @withdraw.call(::Thread.current[@key], exception) rescue nil
+        else
+          @available.push(::Thread.current[@key])
+        end
         ::Thread.current[@key] = nil
         ::Thread.current[@key_count] = nil
       else
@@ -93,6 +102,24 @@ class ConnectionPool
     end
 
     nil
+  end
+
+  ##
+  # Register withdraw callback and switch ConnectionPool to withdrawal mode, by passing exceptioned connection with exception to +block+ and
+  # then removing it from the pool.
+  #
+  # Example usage:
+  #
+  #    @pool = ConnectionPool.new { Bunny.new.tap(&:start) }
+  #    @pool.withdraw do |conn, _exception|
+  #      # close connection on any error before withdrawal from pool
+  #      conn.close
+  #    end
+  #    @pool.with do |conn|
+  #      raise 'something wrong!'
+  #    end
+  def withdraw(&block)
+    @withdraw = block
   end
 
   ##

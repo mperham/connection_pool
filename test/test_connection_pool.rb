@@ -294,6 +294,33 @@ class TestConnectionPool < Minitest::Test
     assert_same conn, pool.checkout
   end
 
+
+  def test_with_withdraw
+    pool = ConnectionPool.new(size: 1) { NetworkConnection.new }
+    withdrawed = false
+    pool.withdraw do |conn, _exception|
+      withdrawed = true
+      conn.fast
+    end
+
+    assert_equal pool.instance_variable_get('@available').instance_variable_get('@que').size, 0
+
+    pool.with(&:fast)
+
+    assert_equal withdrawed, false
+    assert_equal pool.instance_variable_get('@available').instance_variable_get('@que').size, 1
+
+    assert_raises RuntimeError do
+      pool.with do |conn|
+        conn.fast
+        raise 'any error'
+      end
+    end
+
+    assert_equal withdrawed, true
+    assert_equal pool.instance_variable_get('@available').instance_variable_get('@que').size, 0
+  end
+
   def test_checkout_multithread
     pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
     conn = pool.checkout

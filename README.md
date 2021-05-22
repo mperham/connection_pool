@@ -79,6 +79,21 @@ end
 Once you've ported your entire system to use `with`, you can simply remove
 `Wrapper` and use the simpler and faster `ConnectionPool`.
 
+## Withdrawal
+
+You can register withdrawal callback and switch ConnectionPool to withdrawal mode. Any unhandled exception
+along with connection in `with` block will passed to this callback and no connection will returned to pool in this mode.
+
+``` ruby
+  $amqp = ConnectionPool.new { Bunny.new.tap(&:start) }
+  $amqp.withdraw do |conn, _exception|
+    # close AMQP connection on any error before withdrawal from pool
+    conn.close
+  end
+  $amqp.with do |conn|
+    raise 'something wrong!'
+  end
+```
 
 ## Shutdown
 
@@ -132,7 +147,7 @@ Notes
 - Connections are lazily created as needed.
 - There is no provision for repairing or checking the health of a connection;
   connections should be self-repairing. This is true of the Dalli and Redis
-  clients.
+  clients. But there is witdrawal ability when exception occured.
 - **WARNING**: Don't ever use `Timeout.timeout` in your Ruby code or you will see
   occasional silent corruption and mysterious errors. The Timeout API is unsafe
   and cannot be used correctly, ever. Use proper socket timeout options as
