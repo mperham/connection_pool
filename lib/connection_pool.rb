@@ -1,5 +1,5 @@
 require "timeout"
-require "connection_pool/version"
+require_relative "connection_pool/version"
 
 class ConnectionPool
   class Error < ::RuntimeError; end
@@ -122,5 +122,5 @@ class ConnectionPool
   end
 end
 
-require "connection_pool/timed_stack"
-require "connection_pool/wrapper"
+require_relative "connection_pool/timed_stack"
+require_relative "connection_pool/wrapper"
