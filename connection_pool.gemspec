@@ -9,9 +9,11 @@ Gem::Specification.new do |s|
   s.homepage = "https://github.com/mperham/connection_pool"
   s.description = s.summary = "Generic connection pool for Ruby"
 
-  s.files = `git ls-files`.split("\n")
-  s.test_files = `git ls-files -- {test,spec,features}/*`.split("\n")
-  s.executables = `git ls-files -- bin/*`.split("\n").map { |f| File.basename(f) }
+  s.files = ["Changes.md", "LICENSE", "README.md", "connection_pool.gemspec",
+             "lib/connection_pool.rb", "lib/connection_pool/timed_stack.rb",
+             "lib/connection_pool/version.rb", "lib/connection_pool/wrapper.rb"]
+  s.test_files = ["test/helper.rb", "test/test_connection_pool.rb", "test/test_connection_pool_timed_stack.rb"]
+  s.executables = []
   s.require_paths = ["lib"]
   s.license = "MIT"
   s.add_development_dependency "bundler"
