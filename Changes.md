@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+HEAD
+------
+
+* Drop support for Ruby 2.2 [#154]
+
 2.2.5
 ------
 
