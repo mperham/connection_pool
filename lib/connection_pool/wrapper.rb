@@ -38,7 +38,7 @@ class ConnectionPool
           connection.send(name, *args, **kwargs, &block)
         end
       end
-    elsif ::RUBY_VERSION >= "2.7.0"
+    elsif defined?(:ruby2_keywords)
       ruby2_keywords def method_missing(name, *args, &block)
         with do |connection|
           connection.send(name, *args, &block)
