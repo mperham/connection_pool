@@ -159,36 +159,19 @@ class TestConnectionPool < Minitest::Test
       super
     end
 
-    did_something = false
-
     action = lambda do
-      Timeout.timeout(0.02) do
+      Timeout.timeout(0.01) do
         pool.with do |obj|
-          did_something = true
           # Timeout::Error will be triggered by any non-trivial Ruby code
           # executed here since it couldn't be raised during checkout.
-          # It looks like setting the local variable above does not trigger
+          # It looks like setting a local variable does not trigger
           # the Timeout check in MRI 2.2.1.
           obj.tap { obj.hash }
         end
       end
     end
 
-    if RUBY_ENGINE == "ruby"
-      # These asserts rely on the Ruby implementation reaching `did_something =
-      # true` before the interrupt is detected by the thread. Interrupt
-      # detection timing is implementation-specific in practice, with JRuby,
-      # Rubinius, and TruffleRuby all having different interrupt timings to MRI.
-      # In fact they generally detect interrupts more quickly than MRI, so they
-      # may not reach `did_something = true` before detecting the interrupt.
-
-      assert_raises Timeout::Error, &action
-
-      assert did_something
-    else
-      action.call
-    end
-
+    assert_raises Timeout::Error, &action
     assert_equal 1, pool.available
   end
 
