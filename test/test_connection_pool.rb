@@ -162,7 +162,7 @@ class TestConnectionPool < Minitest::Test
     did_something = false
 
     action = lambda do
-      Timeout.timeout(0.01) do
+      Timeout.timeout(0.02) do
         pool.with do |obj|
           did_something = true
           # Timeout::Error will be triggered by any non-trivial Ruby code
