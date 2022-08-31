@@ -3,7 +3,7 @@
 HEAD
 ------
 
-- Drop support for Ruby 2.2 [#154]
+- Minimum Ruby version is now 2.5.0
 
 2.2.5
 ------
