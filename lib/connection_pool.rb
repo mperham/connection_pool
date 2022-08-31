@@ -3,7 +3,9 @@ require_relative "connection_pool/version"
 
 class ConnectionPool
   class Error < ::RuntimeError; end
+
   class PoolShuttingDownError < ::ConnectionPool::Error; end
+
   class TimeoutError < ::Timeout::Error; end
 end
 
@@ -67,7 +69,7 @@ class ConnectionPool
       end
     end
   end
-  alias then with
+  alias_method :then, :with
 
   def checkout(options = {})
     if ::Thread.current[@key]

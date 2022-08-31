@@ -10,9 +10,8 @@ Gem::Specification.new do |s|
   s.description = s.summary = "Generic connection pool for Ruby"
 
   s.files = ["Changes.md", "LICENSE", "README.md", "connection_pool.gemspec",
-             "lib/connection_pool.rb", "lib/connection_pool/timed_stack.rb",
-             "lib/connection_pool/version.rb", "lib/connection_pool/wrapper.rb"]
-  s.test_files = ["test/helper.rb", "test/test_connection_pool.rb", "test/test_connection_pool_timed_stack.rb"]
+    "lib/connection_pool.rb", "lib/connection_pool/timed_stack.rb",
+    "lib/connection_pool/version.rb", "lib/connection_pool/wrapper.rb"]
   s.executables = []
   s.require_paths = ["lib"]
   s.license = "MIT"

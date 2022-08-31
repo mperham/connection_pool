@@ -49,7 +49,7 @@ class ConnectionPool::TimedStack
       @resource.broadcast
     end
   end
-  alias << push
+  alias_method :<<, :push
 
   ##
   # Retrieves a connection from the stack.  If a connection is available it is
@@ -87,7 +87,7 @@ class ConnectionPool::TimedStack
   # +:reload+ is +true+.
 
   def shutdown(reload: false, &block)
-    raise ArgumentError, "shutdown must receive a block" unless block_given?
+    raise ArgumentError, "shutdown must receive a block" unless block
 
     @mutex.synchronize do
       @shutdown_block = block
