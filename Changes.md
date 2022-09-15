@@ -1,9 +1,10 @@
 # connection_pool Changelog
 
-HEAD
+2.3.0
 ------
 
 - Minimum Ruby version is now 2.5.0
+- Add pool size to TimeoutError message
 
 2.2.5
 ------
