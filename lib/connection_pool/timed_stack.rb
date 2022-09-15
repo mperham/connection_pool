@@ -74,7 +74,7 @@ class ConnectionPool::TimedStack
         return connection if connection
 
         to_wait = deadline - current_time
-        raise ConnectionPool::TimeoutError, "Waited #{timeout} sec" if to_wait <= 0
+        raise ConnectionPool::TimeoutError, "Waited #{timeout} sec, #{length}/#{@max} available" if to_wait <= 0
         @resource.wait(@mutex, to_wait)
       end
     end
