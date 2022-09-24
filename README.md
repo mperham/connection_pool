@@ -48,7 +48,7 @@ end
 
 This will only modify the resource-get timeout for this particular
 invocation.
-This is useful if you want to fail-fast on certain non critical
+This is useful if you want to fail-fast on certain non-critical
 sections when a resource is not available, or conversely if you are comfortable blocking longer on a particular resource.
 This is not implemented in the `ConnectionPool::Wrapper` class.
 
