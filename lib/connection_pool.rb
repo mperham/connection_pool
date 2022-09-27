@@ -44,6 +44,34 @@ class ConnectionPool
     Wrapper.new(options, &block)
   end
 
+  def self.after_fork
+    ObjectSpace.each_object(ConnectionPool) do |pool|
+      # We're on after fork, so we know all other threads are dead.
+      # All we need to do is to ensure the main thread doesn't have a
+      # checked out connection
+      pool.checkin(force: true)
+
+      pool.reload do |connection|
+        # Unfortunately we don't know what method to call to close the connection,
+        # so we try the most common one.
+        connection.close if connection.respond_to?(:close)
+      end
+    end
+  end
+
+  if ::Process.respond_to?(:_fork) # MRI 3.1+
+    module ForkTracker
+      def _fork
+        pid = super
+        if pid == 0
+          ConnectionPool.after_fork
+        end
+        pid
+      end
+    end
+    Process.singleton_class.prepend(ForkTracker)
+  end
+
   def initialize(options = {}, &block)
     raise ArgumentError, "Connection pool requires a block" unless block
 
@@ -81,16 +109,16 @@ class ConnectionPool
     end
   end
 
-  def checkin
+  def checkin(force: false)
     if ::Thread.current[@key]
-      if ::Thread.current[@key_count] == 1
+      if ::Thread.current[@key_count] == 1 || force
         @available.push(::Thread.current[@key])
         ::Thread.current[@key] = nil
         ::Thread.current[@key_count] = nil
       else
         ::Thread.current[@key_count] -= 1
       end
-    else
+    elsif !force
       raise ConnectionPool::Error, "no connections are checked out"
     end
 
@@ -111,7 +139,7 @@ class ConnectionPool
   # removing it the pool. Subsequent checkouts will create new connections as
   # needed.
 
-  def reload(&block)
+  def reload(force: false, &block)
     @available.shutdown(reload: true, &block)
   end
 
