@@ -549,6 +549,7 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_after_fork_callback
+    skip("MRI feature") unless Process.respond_to?(:fork)
     GC.start # cleanup instances created by other tests
 
     pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
@@ -559,6 +560,7 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_after_fork_callback_checkin
+    skip("MRI feature") unless Process.respond_to?(:fork)
     GC.start # cleanup instances created by other tests
 
     pool = ConnectionPool.new(size: 2) { NetworkConnection.new }

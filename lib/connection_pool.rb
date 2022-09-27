@@ -44,32 +44,45 @@ class ConnectionPool
     Wrapper.new(options, &block)
   end
 
-  def self.after_fork
-    ObjectSpace.each_object(ConnectionPool) do |pool|
-      # We're on after fork, so we know all other threads are dead.
-      # All we need to do is to ensure the main thread doesn't have a
-      # checked out connection
-      pool.checkin(force: true)
+  if Process.respond_to?(:fork)
+    INSTANCES = ObjectSpace::WeakMap.new
+    private_constant :INSTANCES
 
-      pool.reload do |connection|
-        # Unfortunately we don't know what method to call to close the connection,
-        # so we try the most common one.
-        connection.close if connection.respond_to?(:close)
-      end
-    end
-  end
+    def self.after_fork
+      INSTANCES.values.each do |pool|
+        # We're on after fork, so we know all other threads are dead.
+        # All we need to do is to ensure the main thread doesn't have a
+        # checked out connection
+        pool.checkin(force: true)
 
-  if ::Process.respond_to?(:_fork) # MRI 3.1+
-    module ForkTracker
-      def _fork
-        pid = super
-        if pid == 0
-          ConnectionPool.after_fork
+        pool.reload do |connection|
+          # Unfortunately we don't know what method to call to close the connection,
+          # so we try the most common one.
+          connection.close if connection.respond_to?(:close)
         end
-        pid
       end
+      nil
     end
-    Process.singleton_class.prepend(ForkTracker)
+
+    if ::Process.respond_to?(:_fork) # MRI 3.1+
+      module ForkTracker
+        def _fork
+          pid = super
+          if pid == 0
+            ConnectionPool.after_fork
+          end
+          pid
+        end
+      end
+      Process.singleton_class.prepend(ForkTracker)
+    end
+  else
+    INSTANCES = nil
+    private_constant :INSTANCES
+
+    def self.after_fork
+      # noop
+    end
   end
 
   def initialize(options = {}, &block)
@@ -83,6 +96,7 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
+    INSTANCES[self] = self if INSTANCES
   end
 
   def with(options = {})
@@ -139,7 +153,7 @@ class ConnectionPool
   # removing it the pool. Subsequent checkouts will create new connections as
   # needed.
 
-  def reload(force: false, &block)
+  def reload(&block)
     @available.shutdown(reload: true, &block)
   end
 
