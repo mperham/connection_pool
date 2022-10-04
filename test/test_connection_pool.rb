@@ -547,4 +547,42 @@ class TestConnectionPool < Minitest::Test
       assert_equal(1, pool.available)
     end
   end
+
+  def test_after_fork_callback
+    skip("MRI feature") unless Process.respond_to?(:fork)
+    GC.start # cleanup instances created by other tests
+
+    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+    prefork_connection = pool.with { |c| c }
+    assert_equal(prefork_connection, pool.with { |c| c })
+    ConnectionPool.after_fork
+    refute_equal(prefork_connection, pool.with { |c| c })
+  end
+
+  def test_after_fork_callback_checkin
+    skip("MRI feature") unless Process.respond_to?(:fork)
+    GC.start # cleanup instances created by other tests
+
+    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+    prefork_connection = pool.checkout
+    assert_equal(prefork_connection, pool.checkout)
+    ConnectionPool.after_fork
+    refute_equal(prefork_connection, pool.checkout)
+  end
+
+  def test_automatic_after_fork_callback
+    skip("MRI 3.1 feature") unless Process.respond_to?(:_fork)
+    GC.start # cleanup instances created by other tests
+
+    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+    prefork_connection = pool.with { |c| c }
+    assert_equal(prefork_connection, pool.with { |c| c })
+    pid = fork do
+      refute_equal(prefork_connection, pool.with { |c| c })
+      exit!(0)
+    end
+    assert_equal(prefork_connection, pool.with { |c| c })
+    _, status = Process.waitpid2(pid)
+    assert_predicate(status, :success?)
+  end
 end

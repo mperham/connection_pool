@@ -44,6 +44,47 @@ class ConnectionPool
     Wrapper.new(options, &block)
   end
 
+  if Process.respond_to?(:fork)
+    INSTANCES = ObjectSpace::WeakMap.new
+    private_constant :INSTANCES
+
+    def self.after_fork
+      INSTANCES.values.each do |pool|
+        # We're on after fork, so we know all other threads are dead.
+        # All we need to do is to ensure the main thread doesn't have a
+        # checked out connection
+        pool.checkin(force: true)
+
+        pool.reload do |connection|
+          # Unfortunately we don't know what method to call to close the connection,
+          # so we try the most common one.
+          connection.close if connection.respond_to?(:close)
+        end
+      end
+      nil
+    end
+
+    if ::Process.respond_to?(:_fork) # MRI 3.1+
+      module ForkTracker
+        def _fork
+          pid = super
+          if pid == 0
+            ConnectionPool.after_fork
+          end
+          pid
+        end
+      end
+      Process.singleton_class.prepend(ForkTracker)
+    end
+  else
+    INSTANCES = nil
+    private_constant :INSTANCES
+
+    def self.after_fork
+      # noop
+    end
+  end
+
   def initialize(options = {}, &block)
     raise ArgumentError, "Connection pool requires a block" unless block
 
@@ -55,6 +96,7 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
+    INSTANCES[self] = self if INSTANCES
   end
 
   def with(options = {})
@@ -81,16 +123,16 @@ class ConnectionPool
     end
   end
 
-  def checkin
+  def checkin(force: false)
     if ::Thread.current[@key]
-      if ::Thread.current[@key_count] == 1
+      if ::Thread.current[@key_count] == 1 || force
         @available.push(::Thread.current[@key])
         ::Thread.current[@key] = nil
         ::Thread.current[@key_count] = nil
       else
         ::Thread.current[@key_count] -= 1
       end
-    else
+    elsif !force
       raise ConnectionPool::Error, "no connections are checked out"
     end
 
