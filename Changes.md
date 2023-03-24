@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+2.4.0
+------
+
+- Automatically drop all connections after fork [#166]
+
 2.3.0
 ------
 
