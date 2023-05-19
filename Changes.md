@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+2.4.1
+------
+
+- New `auto_reload_after_fork` config option to disable auto-drop [#177, shayonj]
+
 2.4.0
 ------
 
