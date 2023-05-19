@@ -20,5 +20,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency "rake"
   s.required_ruby_version = ">= 2.5.0"
 
-  s.metadata = { "changelog_uri" => "https://github.com/mperham/connection_pool/blob/main/Changes.md", "rubygems_mfa_required" => "true" }
+  s.metadata = {"changelog_uri" => "https://github.com/mperham/connection_pool/blob/main/Changes.md", "rubygems_mfa_required" => "true"}
 end
