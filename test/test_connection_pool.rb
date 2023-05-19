@@ -559,6 +559,18 @@ class TestConnectionPool < Minitest::Test
     refute_equal(prefork_connection, pool.with { |c| c })
   end
 
+  def test_after_fork_callback_being_skipped
+    skip("MRI feature") unless Process.respond_to?(:fork)
+    GC.start # cleanup instances created by other tests
+
+    pool = ConnectionPool.new(size: 2, auto_reload_after_fork: false) { NetworkConnection.new }
+    prefork_connection = pool.with { |c| c }
+    assert_equal(prefork_connection, pool.with { |c| c })
+    ConnectionPool.after_fork
+    assert_equal(prefork_connection, pool.with { |c| c })
+  end
+
+
   def test_after_fork_callback_checkin
     skip("MRI feature") unless Process.respond_to?(:fork)
     GC.start # cleanup instances created by other tests
