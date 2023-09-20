@@ -57,11 +57,7 @@ class ConnectionPool
         # All we need to do is to ensure the main thread doesn't have a
         # checked out connection
         pool.checkin(force: true)
-        pool.reload do |connection|
-          # Unfortunately we don't know what method to call to close the connection,
-          # so we try the most common one.
-          connection.close if connection.respond_to?(:close)
-        end
+        pool.reload
       end
       nil
     end
