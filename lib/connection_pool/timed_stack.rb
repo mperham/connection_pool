@@ -99,6 +99,19 @@ class ConnectionPool::TimedStack
   end
 
   ##
+  # Reaps connections that were checked in more than +idle_seconds+ ago.
+  def reap(idle_seconds, &block)
+    raise ArgumentError, "reap must receive a block" unless block
+    raise ArgumentError, "idle_seconds must be a number" unless idle_seconds.is_a?(Numeric)
+
+    @mutex.synchronize do
+      reap_start_time = current_time
+
+      reap_idle_connections(idle_seconds, reap_start_time, &block)
+    end
+  end
+
+  ##
   # Returns +true+ if there are no available connections.
 
   def empty?
@@ -110,6 +123,12 @@ class ConnectionPool::TimedStack
 
   def length
     @max - @created + @que.length
+  end
+
+  ##
+  # The number of connections created and available on the stack.
+  def idle
+    @que.length
   end
 
   private
@@ -133,7 +152,7 @@ class ConnectionPool::TimedStack
   # This method must return a connection from the stack.
 
   def fetch_connection(options = nil)
-    @que.pop
+    @que.pop&.first
   end
 
   ##
@@ -152,10 +171,35 @@ class ConnectionPool::TimedStack
   ##
   # This is an extension point for TimedStack and is called with a mutex.
   #
+  # This method iterates over the connections in the stack and reaps the oldest idle connections one at a time until
+  # the first connection is not idle. This requires that the stack is kept in order of checked in time (oldest first).
+
+  def reap_idle_connections(idle_seconds, reap_start_time, &reap_block)
+    while idle_connections?(idle_seconds, reap_start_time)
+      conn, _last_checked_out = @que.shift
+      reap_block.call(conn)
+    end
+  end
+
+  ##
+  # This is an extension point for TimedStack and is called with a mutex.
+  #
+  # Returns true if the first connection in the stack has been idle for more than idle_seconds
+
+  def idle_connections?(idle_seconds, reap_start_time)
+    if connection_stored?
+      _conn, last_checked_out = @que.first
+      reap_start_time - last_checked_out > idle_seconds
+    end
+  end
+
+  ##
+  # This is an extension point for TimedStack and is called with a mutex.
+  #
   # This method must return +obj+ to the stack.
 
   def store_connection(obj, options = nil)
-    @que.push obj
+    @que.push [obj, current_time]
   end
 
   ##
