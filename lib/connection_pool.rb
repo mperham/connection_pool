@@ -161,8 +161,8 @@ class ConnectionPool
   end
 
   ## Reaps idle connections that have been idle for over +idle_seconds+.
-  # +idle_seconds+ defaults to 0, i.e. reap all idle connections.
-  def reap(idle_seconds = 0, &block)
+  # +idle_seconds+ defaults to 60.
+  def reap(idle_seconds = 60, &block)
     @available.reap(idle_seconds, &block)
   end
 

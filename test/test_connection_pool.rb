@@ -477,7 +477,7 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal 1, pool.idle
 
-    pool.reap { |recorder| recorder.do_work("reap") }
+    pool.reap(0) { |recorder| recorder.do_work("reap") }
 
     assert_equal 0, pool.idle
     assert_equal [["reap"]], recorders.map(&:calls)
@@ -493,7 +493,7 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal 3, pool.idle
 
-    pool.reap { |recorder| recorder.do_work("reap") }
+    pool.reap(0) { |recorder| recorder.do_work("reap") }
 
     assert_equal 0, pool.idle
     assert_equal [["reap"]] * 3, recorders.map(&:calls)
