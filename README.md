@@ -113,6 +113,22 @@ cp = ConnectionPool.new { Redis.new }
 cp.reap(300) { |conn| conn.close } # Reaps connections that have been idle for 300 seconds (5 minutes).
 ```
 
+### Reaper Thread
+
+You can start your own reaper thread to reap idle connections in the ConnectionPool instance on a regular interval.
+
+```ruby
+cp = ConnectionPool.new { Redis.new }
+
+# Start a reaper thread to reap connections that have been idle for 300 seconds (5 minutes).
+Thread.new do
+  loop do
+    cp.reap(300) { |conn| conn.close }
+    sleep 300
+  end
+end
+```
+
 ## Current State
 
 There are several methods that return information about a pool.
