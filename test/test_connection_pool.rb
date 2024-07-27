@@ -31,7 +31,7 @@ class TestConnectionPool < Minitest::Test
     end
 
     def respond_to?(method_id, *args)
-      method_id == :do_magic || super(method_id, *args)
+      method_id == :do_magic || super
     end
   end
 
@@ -465,6 +465,74 @@ class TestConnectionPool < Minitest::Test
     kill_threads(threads)
 
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
+  end
+
+  def test_reap_removes_idle_connections
+    recorders = []
+    pool = ConnectionPool.new(size: 1) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+
+    pool.with { |conn| conn }
+
+    assert_equal 1, pool.idle
+
+    pool.reap(0) { |recorder| recorder.do_work("reap") }
+
+    assert_equal 0, pool.idle
+    assert_equal [["reap"]], recorders.map(&:calls)
+  end
+
+  def test_reap_removes_all_idle_connections
+    recorders = []
+    pool = ConnectionPool.new(size: 3) do
+      Recorder.new.tap { |r| recorders << r }
+    end
+    threads = use_pool(pool, 3)
+    kill_threads(threads)
+
+    assert_equal 3, pool.idle
+
+    pool.reap(0) { |recorder| recorder.do_work("reap") }
+
+    assert_equal 0, pool.idle
+    assert_equal [["reap"]] * 3, recorders.map(&:calls)
+  end
+
+  def test_reap_does_not_remove_connections_if_outside_idle_time
+    pool = ConnectionPool.new(size: 1) { Object.new }
+
+    pool.with { |conn| conn }
+
+    pool.reap(1000) { |conn| flunk "should not reap active connection" }
+  end
+
+  def test_idle_returns_number_of_idle_connections
+    pool = ConnectionPool.new(size: 1) { Object.new }
+
+    assert_equal 0, pool.idle
+
+    pool.checkout
+
+    assert_equal 0, pool.idle
+
+    pool.checkin
+
+    assert_equal 1, pool.idle
+  end
+
+  def test_idle_with_multiple_connections
+    pool = ConnectionPool.new(size: 3) { Object.new }
+
+    assert_equal 0, pool.idle
+
+    threads = use_pool(pool, 3)
+
+    assert_equal 0, pool.idle
+
+    kill_threads(threads)
+
+    assert_equal 3, pool.idle
   end
 
   def test_wrapper_wrapped_pool

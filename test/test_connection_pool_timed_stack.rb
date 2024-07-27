@@ -33,6 +33,20 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_equal 1, stack.length
   end
 
+  def test_idle
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+
+    assert_equal 0, stack.idle
+
+    popped = stack.pop
+
+    assert_equal 0, stack.idle
+
+    stack.push popped
+
+    assert_equal 1, stack.idle
+  end
+
   def test_object_creation_fails
     stack = ConnectionPool::TimedStack.new(2) { raise "failure" }
 
@@ -146,5 +160,122 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
     refute_empty called
     assert_empty @stack
+  end
+
+  def test_reap
+    @stack.push Object.new
+
+    called = []
+
+    @stack.reap(0) do |object|
+      called << object
+    end
+
+    refute_empty called
+    assert_empty @stack
+  end
+
+  def test_reap_large_idle_seconds
+    @stack.push Object.new
+
+    called = []
+
+    @stack.reap(100) do |object|
+      called << object
+    end
+
+    assert_empty called
+    refute_empty @stack
+  end
+
+  def test_reap_no_block
+    assert_raises(ArgumentError) do
+      @stack.reap(0)
+    end
+  end
+
+  def test_reap_non_numeric_idle_seconds
+    assert_raises(ArgumentError) do
+      @stack.reap("0") { |object| object }
+    end
+  end
+
+  def test_reap_with_multiple_connections
+    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stubbed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    conn1 = stack.pop
+    conn2 = stack.pop
+
+    stack.stub :current_time, stubbed_time do
+      stack.push conn1
+    end
+
+    stack.stub :current_time, stubbed_time + 1 do
+      stack.push conn2
+    end
+
+    called = []
+
+    stack.stub :current_time, stubbed_time + 2 do
+      stack.reap(1.5) do |object|
+        called << object
+      end
+    end
+
+    assert_equal [conn1], called
+    refute_empty stack
+    assert_equal 1, stack.idle
+  end
+
+  def test_reap_with_multiple_connections_and_zero_idle_seconds
+    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stubbed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    conn1 = stack.pop
+    conn2 = stack.pop
+
+    stack.stub :current_time, stubbed_time do
+      stack.push conn1
+    end
+
+    stack.stub :current_time, stubbed_time + 1 do
+      stack.push conn2
+    end
+
+    called = []
+
+    stack.stub :current_time, stubbed_time + 2 do
+      stack.reap(0) do |object|
+        called << object
+      end
+    end
+
+    assert_equal [conn1, conn2], called
+    assert_empty stack
+  end
+
+  def test_reap_with_multiple_connections_and_idle_seconds_outside_range
+    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stubbed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    conn1 = stack.pop
+    conn2 = stack.pop
+
+    stack.stub :current_time, stubbed_time do
+      stack.push conn1
+    end
+
+    stack.stub :current_time, stubbed_time + 1 do
+      stack.push conn2
+    end
+
+    called = []
+
+    stack.stub :current_time, stubbed_time + 2 do
+      stack.reap(3) do |object|
+        called << object
+      end
+    end
+
+    assert_empty called
+    assert_equal 2, stack.idle
   end
 end

@@ -101,6 +101,34 @@ cp.with { |conn| conn.get('some-count') }
 
 Like `shutdown`, this will block until all connections are checked in and closed.
 
+## Reap
+
+You can reap idle connections in the ConnectionPool instance to close connections that were created but have not been used for a certain amount of time. This can be useful to run periodically in a separate thread especially if keeping the connection open is resource intensive.
+
+You can specify how many seconds the connections have to be idle for them to be reaped.
+Defaults to 60 seconds.
+
+```ruby
+cp = ConnectionPool.new { Redis.new }
+cp.reap(300) { |conn| conn.close } # Reaps connections that have been idle for 300 seconds (5 minutes).
+```
+
+### Reaper Thread
+
+You can start your own reaper thread to reap idle connections in the ConnectionPool instance on a regular interval.
+
+```ruby
+cp = ConnectionPool.new { Redis.new }
+
+# Start a reaper thread to reap connections that have been idle for 300 seconds (5 minutes).
+Thread.new do
+  loop do
+    cp.reap(300) { |conn| conn.close }
+    sleep 300
+  end
+end
+```
+
 ## Current State
 
 There are several methods that return information about a pool.
@@ -109,11 +137,15 @@ There are several methods that return information about a pool.
 cp = ConnectionPool.new(size: 10) { Redis.new }
 cp.size # => 10
 cp.available # => 10
+cp.idle # => 0
 
 cp.with do |conn|
   cp.size # => 10
   cp.available # => 9
+  cp.idle # => 0
 end
+
+cp.idle # => 1
 ```
 
 Notes
