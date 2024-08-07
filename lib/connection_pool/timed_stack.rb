@@ -178,6 +178,8 @@ class ConnectionPool::TimedStack
     while idle_connections?(idle_seconds, reap_start_time)
       conn, _last_checked_out = @que.shift
       reap_block.call(conn)
+      # Decrement created unless this is a no create stack
+      @created -= 1 unless @max == 0
     end
   end
 
