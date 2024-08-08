@@ -21,6 +21,9 @@ jobs:
         ruby-version: ${{matrix.ruby}}
         bundler-cache: true
 
+    - name: Run standardrb
+      run: bundle exec standardrb --no-fix
+
     - name: Run tests
       timeout-minutes: 5
-      run: ${{matrix.env}} bundle exec rake
+      run: ${{matrix.env}} bundle exec rake test
