@@ -535,6 +535,16 @@ class TestConnectionPool < Minitest::Test
     assert_equal 3, pool.idle
   end
 
+  def test_reap_raises_error_after_shutting_down
+    pool = ConnectionPool.new(size: 1) { true }
+
+    pool.shutdown {}
+
+    assert_raises ConnectionPool::PoolShuttingDownError do
+      pool.reap(0) {}
+    end
+  end
+
   def test_wrapper_wrapped_pool
     wrapper = ConnectionPool::Wrapper.new { NetworkConnection.new }
     assert_equal ConnectionPool, wrapper.wrapped_pool.class

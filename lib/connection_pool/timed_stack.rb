@@ -105,7 +105,12 @@ class ConnectionPool::TimedStack
     raise ArgumentError, "idle_seconds must be a number" unless idle_seconds.is_a?(Numeric)
 
     loop do
-      conn = @mutex.synchronize { reserve_idle_connection(idle_seconds) }
+      conn =
+        @mutex.synchronize do
+          raise ConnectionPool::PoolShuttingDownError if @shutdown_block
+
+          reserve_idle_connection(idle_seconds)
+        end
       break unless conn
 
       block.call(conn)
