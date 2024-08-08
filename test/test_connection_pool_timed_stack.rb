@@ -175,6 +175,18 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_empty @stack
   end
 
+  def test_reap_full_stack
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack.push stack.pop
+
+    stack.reap(0) do |object|
+      nil
+    end
+
+    # Can still pop from the stack after reaping all connections
+    refute_nil stack.pop
+  end
+
   def test_reap_large_idle_seconds
     @stack.push Object.new
 
@@ -250,7 +262,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
     end
 
     assert_equal [conn1, conn2], called
-    assert_empty stack
+    assert_equal 0, stack.idle
   end
 
   def test_reap_with_multiple_connections_and_idle_seconds_outside_range

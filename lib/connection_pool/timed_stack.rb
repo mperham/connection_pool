@@ -104,10 +104,16 @@ class ConnectionPool::TimedStack
     raise ArgumentError, "reap must receive a block" unless block
     raise ArgumentError, "idle_seconds must be a number" unless idle_seconds.is_a?(Numeric)
 
-    @mutex.synchronize do
-      reap_start_time = current_time
+    loop do
+      conn =
+        @mutex.synchronize do
+          raise ConnectionPool::PoolShuttingDownError if @shutdown_block
 
-      reap_idle_connections(idle_seconds, reap_start_time, &block)
+          reserve_idle_connection(idle_seconds)
+        end
+      break unless conn
+
+      block.call(conn)
     end
   end
 
@@ -171,14 +177,16 @@ class ConnectionPool::TimedStack
   ##
   # This is an extension point for TimedStack and is called with a mutex.
   #
-  # This method iterates over the connections in the stack and reaps the oldest idle connections one at a time until
-  # the first connection is not idle. This requires that the stack is kept in order of checked in time (oldest first).
+  # This method returns the oldest idle connection if it has been idle for more than idle_seconds.
+  # This requires that the stack is kept in order of checked in time (oldest first).
 
-  def reap_idle_connections(idle_seconds, reap_start_time, &reap_block)
-    while idle_connections?(idle_seconds, reap_start_time)
-      conn, _last_checked_out = @que.shift
-      reap_block.call(conn)
-    end
+  def reserve_idle_connection(idle_seconds)
+    return unless idle_connections?(idle_seconds)
+
+    # Decrement created unless this is a no create stack
+    @created -= 1 unless @max == 0
+
+    @que.shift.first
   end
 
   ##
@@ -186,11 +194,8 @@ class ConnectionPool::TimedStack
   #
   # Returns true if the first connection in the stack has been idle for more than idle_seconds
 
-  def idle_connections?(idle_seconds, reap_start_time)
-    if connection_stored?
-      _conn, last_checked_out = @que.first
-      reap_start_time - last_checked_out > idle_seconds
-    end
+  def idle_connections?(idle_seconds)
+    connection_stored? && (current_time - @que.first.last > idle_seconds)
   end
 
   ##
