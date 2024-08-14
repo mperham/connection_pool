@@ -41,6 +41,7 @@ class ConnectionPool::TimedStack
   def push(obj, options = {})
     @mutex.synchronize do
       if @shutdown_block
+        decrement_created
         @shutdown_block.call(obj)
       else
         store_connection obj, options
@@ -169,9 +170,9 @@ class ConnectionPool::TimedStack
   def shutdown_connections(options = nil)
     while connection_stored?(options)
       conn = fetch_connection(options)
+      decrement_created
       @shutdown_block.call(conn)
     end
-    @created = 0
   end
 
   ##
@@ -183,8 +184,7 @@ class ConnectionPool::TimedStack
   def reserve_idle_connection(idle_seconds)
     return unless idle_connections?(idle_seconds)
 
-    # Decrement created unless this is a no create stack
-    @created -= 1 unless @max == 0
+    decrement_created
 
     @que.shift.first
   end
@@ -219,5 +219,14 @@ class ConnectionPool::TimedStack
       @created += 1
       object
     end
+  end
+
+  ##
+  # This is an extension point for TimedStack and is called with a mutex.
+  #
+  # Decrement created unless no connections have been created.
+  # This is safe for no-create stacks since @created will always be 0.
+  def decrement_created
+    @created -= 1 unless @created == 0
   end
 end
