@@ -407,6 +407,17 @@ class TestConnectionPool < Minitest::Test
     assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
   end
 
+  def test_checkout_after_reload_cannot_create_new_connections_beyond_size
+    pool = ConnectionPool.new(size: 1) { Object.new }
+    threads = use_pool pool, 1
+    pool.reload {}
+    assert_raises ConnectionPool::TimeoutError do
+      pool.checkout(timeout: 0)
+    end
+  ensure
+    kill_threads(threads) if threads
+  end
+
   def test_raises_error_after_shutting_down
     pool = ConnectionPool.new(size: 1) { true }
 
