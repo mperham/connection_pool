@@ -103,8 +103,9 @@ class ConnectionPool::TimedStack
   def reap(idle_seconds, &block)
     raise ArgumentError, "reap must receive a block" unless block
     raise ArgumentError, "idle_seconds must be a number" unless idle_seconds.is_a?(Numeric)
+    raise ConnectionPool::PoolShuttingDownError if @shutdown_block
 
-    loop do
+    idle.times do
       conn =
         @mutex.synchronize do
           raise ConnectionPool::PoolShuttingDownError if @shutdown_block
