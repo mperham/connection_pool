@@ -208,6 +208,54 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_empty @stack
   end
 
+  def test_shutdown_can_be_called_after_error
+    3.times { @stack.push Object.new }
+
+    called = []
+    closing_error = "error in closing connection"
+    raise_error = true
+    shutdown_proc = ->(conn) do
+      called << conn
+      if raise_error
+        raise_error = false
+        raise closing_error
+      end
+    end
+
+    assert_raises(closing_error) do
+      @stack.shutdown(&shutdown_proc)
+    end
+
+    assert_equal 1, called.size
+
+    @stack.shutdown(&shutdown_proc)
+    assert_equal 3, called.size
+  end
+
+  def test_reap_can_be_called_after_error
+    3.times { @stack.push Object.new }
+
+    called = []
+    closing_error = "error in closing connection"
+    raise_error = true
+    reap_proc = ->(conn) do
+      called << conn
+      if raise_error
+        raise_error = false
+        raise closing_error
+      end
+    end
+
+    assert_raises(closing_error) do
+      @stack.reap(0, &reap_proc)
+    end
+
+    assert_equal 1, called.size
+
+    @stack.reap(0, &reap_proc)
+    assert_equal 3, called.size
+  end
+
   def test_reap
     @stack.push Object.new
 
