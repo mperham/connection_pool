@@ -290,4 +290,21 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_empty called
     assert_equal 2, stack.idle
   end
+
+  def test_reap_does_not_loop_continuously
+    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stack.push(Object.new)
+    stack.push(Object.new)
+
+    close_attempts = 0
+    stack.reap(0) do |conn|
+      if close_attempts >= 2
+        flunk "Reap is stuck in a loop"
+      end
+      close_attempts += 1
+      stack.push(conn)
+    end
+
+    assert_equal 2, close_attempts
+  end
 end
