@@ -33,6 +33,27 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_equal 1, stack.length
   end
 
+  def test_length_after_shutdown_reload_for_no_create_stack
+    assert_equal 0, @stack.length
+
+    @stack.push(Object.new)
+
+    assert_equal 1, @stack.length
+
+    @stack.shutdown(reload: true) {}
+
+    assert_equal 0, @stack.length
+  end
+
+  def test_length_after_shutdown_reload_with_checked_out_conn
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    conn = stack.pop
+    stack.shutdown(reload: true) {}
+    assert_equal 0, stack.length
+    stack.push(conn)
+    assert_equal 1, stack.length
+  end
+
   def test_idle
     stack = ConnectionPool::TimedStack.new(1) { Object.new }
 
@@ -94,6 +115,22 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_empty stack
   end
 
+  def test_pop_full_with_extra_conn_pushed
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    popped = stack.pop
+
+    stack.push(Object.new)
+    stack.push(popped)
+
+    assert_equal 2, stack.length
+
+    stack.shutdown(reload: true) {}
+
+    assert_equal 1, stack.length
+    stack.pop
+    assert_raises(ConnectionPool::TimeoutError) { stack.pop(0) }
+  end
+
   def test_pop_wait
     thread = Thread.start {
       @stack.pop
@@ -124,6 +161,15 @@ class TestConnectionPoolTimedStack < Minitest::Test
     stack.shutdown(reload: true) {}
 
     refute_equal object, stack.pop
+  end
+
+  def test_pop_raises_error_if_shutdown_reload_is_run_and_connection_is_still_in_use
+    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack.pop
+    stack.shutdown(reload: true) {}
+    assert_raises ConnectionPool::TimeoutError do
+      stack.pop(0)
+    end
   end
 
   def test_push
@@ -160,6 +206,54 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
     refute_empty called
     assert_empty @stack
+  end
+
+  def test_shutdown_can_be_called_after_error
+    3.times { @stack.push Object.new }
+
+    called = []
+    closing_error = "error in closing connection"
+    raise_error = true
+    shutdown_proc = ->(conn) do
+      called << conn
+      if raise_error
+        raise_error = false
+        raise closing_error
+      end
+    end
+
+    assert_raises(closing_error) do
+      @stack.shutdown(&shutdown_proc)
+    end
+
+    assert_equal 1, called.size
+
+    @stack.shutdown(&shutdown_proc)
+    assert_equal 3, called.size
+  end
+
+  def test_reap_can_be_called_after_error
+    3.times { @stack.push Object.new }
+
+    called = []
+    closing_error = "error in closing connection"
+    raise_error = true
+    reap_proc = ->(conn) do
+      called << conn
+      if raise_error
+        raise_error = false
+        raise closing_error
+      end
+    end
+
+    assert_raises(closing_error) do
+      @stack.reap(0, &reap_proc)
+    end
+
+    assert_equal 1, called.size
+
+    @stack.reap(0, &reap_proc)
+    assert_equal 3, called.size
   end
 
   def test_reap
