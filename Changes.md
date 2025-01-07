@@ -1,5 +1,16 @@
 # connection_pool Changelog
 
+2.5.0
+------
+
+- Reap idle connections [#187]
+```ruby
+idle_timeout = 60
+pool = ConnectionPool.new ...
+pool.reap(idle_timeout, &:close)
+```
+- `ConnectionPool#idle` returns the count of connections not in use [#187]
+
 2.4.1
 ------
 
