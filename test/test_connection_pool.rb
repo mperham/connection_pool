@@ -210,6 +210,22 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
+  def test_with_options
+    pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
+    stack = pool.instance_variable_get(:@available)
+
+    def stack.connection_stored?(opts)
+      raise opts.to_s
+    end
+
+    options = { foo: 123 }
+    e = assert_raises do
+      pool.with(options) {}
+    end
+
+    assert_equal e.message, options.to_s
+  end
+
   def test_checkin
     pool = ConnectionPool.new(timeout: 0, size: 1) { NetworkConnection.new }
     conn = pool.checkout

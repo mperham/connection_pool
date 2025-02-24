@@ -122,7 +122,7 @@ class ConnectionPool
       ::Thread.current[@key]
     else
       ::Thread.current[@key_count] = 1
-      ::Thread.current[@key] = @available.pop(options[:timeout] || @timeout)
+      ::Thread.current[@key] = @available.pop(options[:timeout] || @timeout, options)
     end
   end
 
