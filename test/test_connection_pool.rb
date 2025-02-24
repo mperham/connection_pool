@@ -218,7 +218,7 @@ class TestConnectionPool < Minitest::Test
       raise opts.to_s
     end
 
-    options = { foo: 123 }
+    options = {foo: 123}
     e = assert_raises do
       pool.with(options) {}
     end
