@@ -69,7 +69,9 @@ class ConnectionPool::TimedStack
     @mutex.synchronize do
       loop do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
-        return fetch_connection(options) if connection_stored?(options)
+        if (conn = try_fetch_connection(options))
+          return conn
+        end
 
         connection = try_create(options)
         return connection if connection
@@ -148,6 +150,17 @@ class ConnectionPool::TimedStack
   ##
   # This is an extension point for TimedStack and is called with a mutex.
   #
+  # This method must returns a connection from the stack if one exists. Allows
+  # subclasses with expensive match/search algorithms to avoid double-handling
+  # their stack.
+
+  def try_fetch_connection(options = nil)
+    connection_stored?(options) and fetch_connection(options)
+  end
+
+  ##
+  # This is an extension point for TimedStack and is called with a mutex.
+  #
   # This method must returns true if a connection is available on the stack.
 
   def connection_stored?(options = nil)
@@ -169,8 +182,7 @@ class ConnectionPool::TimedStack
   # This method must shut down all connections on the stack.
 
   def shutdown_connections(options = nil)
-    while connection_stored?(options)
-      conn = fetch_connection(options)
+    while (conn = try_fetch_connection(options))
       @created -= 1 unless @created == 0
       @shutdown_block.call(conn)
     end
