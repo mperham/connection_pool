@@ -1,6 +1,11 @@
 require_relative "helper"
 
 class TestConnectionPool < Minitest::Test
+  def teardown
+    # wipe the `:INSTANCES` const to avoid cross test contamination
+    ConnectionPool.stub_const(:INSTANCES, ObjectSpace::WeakMap.new)
+  end
+
   class NetworkConnection
     SLEEP_TIME = 0.1
 
@@ -210,7 +215,7 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
-  def test_with_options
+  def test_with_options_fork
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
     stack = pool.instance_variable_get(:@available)
 
