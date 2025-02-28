@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative "helper"
 
 class TestTimedStackSubclassing < Minitest::Test
@@ -22,11 +23,11 @@ class TestTimedStackSubclassing < Minitest::Test
     stack.push stack.pop
 
     connection_stored_called = "cs_called"
-    stack.define_singleton_method(:connection_stored?) {|*| raise connection_stored_called }
+    stack.define_singleton_method(:connection_stored?) { |*| raise connection_stored_called }
     e = assert_raises { stack.send(:try_fetch_connection) }
     assert_equal connection_stored_called, e.message
 
-    stack.define_singleton_method(:try_fetch_connection) { fetch_connection() }
+    stack.define_singleton_method(:try_fetch_connection) { fetch_connection }
     assert_equal obj, stack.send(:try_fetch_connection)
   end
 end
