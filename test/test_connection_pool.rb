@@ -215,7 +215,7 @@ class TestConnectionPool < Minitest::Test
     end
   end
 
-  def test_with_options_fork
+  def test_with_options
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
     stack = pool.instance_variable_get(:@available)
 
