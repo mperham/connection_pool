@@ -1,5 +1,11 @@
 # connection_pool Changelog
 
+HEAD
+------
+
+- Pass options to TimedStack in `checkout` [#195]
+- Optimize connection lookup [#196]
+
 2.5.0
 ------
 
