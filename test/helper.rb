@@ -7,10 +7,10 @@ $VERBOSE = 1
 
 require_relative "../lib/connection_pool"
 
-class Class
-  def stub_const(const, value)
+class ConnectionPool
+  def self.reset_instances
     ov, $VERBOSE = $VERBOSE
-    const_set(const, value)
+    const_set(:INSTANCES, ObjectSpace::WeakMap.new)
   ensure
     $VERBOSE = ov
   end
