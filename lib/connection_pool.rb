@@ -39,7 +39,7 @@ end
 # - :auto_reload_after_fork - automatically drop all connections after fork, defaults to true
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5, auto_reload_after_fork: true}
+  DEFAULTS = {size: 5, timeout: 5, auto_reload_after_fork: false}.freeze
 
   def self.wrap(options, &block)
     Wrapper.new(options, &block)
@@ -99,7 +99,7 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
-    INSTANCES[self] = self if INSTANCES
+    INSTANCES[self] = self if @auto_reload_after_fork
   end
 
   def with(options = {})

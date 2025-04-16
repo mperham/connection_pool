@@ -662,7 +662,7 @@ class TestConnectionPool < Minitest::Test
     skip("MRI feature") unless Process.respond_to?(:fork)
     GC.start # cleanup instances created by other tests
 
-    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+    pool = ConnectionPool.new(size: 2, auto_reload_after_fork: true) { NetworkConnection.new }
     prefork_connection = pool.with { |c| c }
     assert_equal(prefork_connection, pool.with { |c| c })
     ConnectionPool.after_fork
@@ -684,7 +684,7 @@ class TestConnectionPool < Minitest::Test
     skip("MRI feature") unless Process.respond_to?(:fork)
     GC.start # cleanup instances created by other tests
 
-    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+    pool = ConnectionPool.new(size: 2, auto_reload_after_fork: true) { NetworkConnection.new }
     prefork_connection = pool.checkout
     assert_equal(prefork_connection, pool.checkout)
     ConnectionPool.after_fork
@@ -695,7 +695,7 @@ class TestConnectionPool < Minitest::Test
     skip("MRI 3.1 feature") unless Process.respond_to?(:_fork)
     GC.start # cleanup instances created by other tests
 
-    pool = ConnectionPool.new(size: 2) { NetworkConnection.new }
+    pool = ConnectionPool.new(size: 2, auto_reload_after_fork: true) { NetworkConnection.new }
     prefork_connection = pool.with { |c| c }
     assert_equal(prefork_connection, pool.with { |c| c })
     pid = fork do
