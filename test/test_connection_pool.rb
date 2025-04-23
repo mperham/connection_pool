@@ -709,6 +709,12 @@ class TestConnectionPool < Minitest::Test
 
   def test_ractors
     begin
+      Ractor
+    rescue NameError
+      skip("Ractor not available")
+    end
+
+    begin
       # TODO Ractor prints a bunch of warnings to the console, no idea
       # how to turn it off
       r = Ractor.new do
