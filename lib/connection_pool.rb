@@ -39,7 +39,7 @@ end
 # - :auto_reload_after_fork - automatically drop all connections after fork, defaults to true
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5, auto_reload_after_fork: false}.freeze
+  DEFAULTS = {size: 5, timeout: 5, auto_reload_after_fork: true}.freeze
 
   def self.wrap(options, &block)
     Wrapper.new(options, &block)

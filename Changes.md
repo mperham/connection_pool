@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+2.5.2
+------
+
+- Rollback inadvertant change to `auto_reload_after_fork` default. [#200]
+
 2.5.1
 ------
 

@@ -706,4 +706,29 @@ class TestConnectionPool < Minitest::Test
     _, status = Process.waitpid2(pid)
     assert_predicate(status, :success?)
   end
+
+  def test_ractors
+    begin
+      # TODO Ractor prints a bunch of warnings to the console, no idea
+      # how to turn it off
+      r = Ractor.new do
+        ConnectionPool.new(auto_reload_after_fork: true) { Object.new }
+        true
+      end
+      r.take
+      # should not get here
+      refute true
+    rescue Ractor::RemoteError => re
+      # expected
+      assert re.cause
+      assert_equal Ractor::IsolationError, re.cause.class
+      assert_match(/ConnectionPool::INSTANCES/, re.cause.message)
+    end
+
+    r = Ractor.new do
+      ConnectionPool.new(auto_reload_after_fork: false) { Object.new }
+      true
+    end
+    assert_equal true, r.take
+  end
 end
