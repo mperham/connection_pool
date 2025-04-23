@@ -99,7 +99,7 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
-    INSTANCES[self] = self if @auto_reload_after_fork
+    INSTANCES[self] = self if @auto_reload_after_fork && INSTANCES
   end
 
   def with(options = {})
