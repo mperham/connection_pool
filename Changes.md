@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+2.5.3
+------
+
+- Fix TruffleRuby/JRuby crash [#201]
+
 2.5.2
 ------
 
