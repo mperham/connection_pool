@@ -38,7 +38,7 @@ class ConnectionPool::TimedStack
   def push(obj, options = {})
     @mutex.synchronize do
       if @shutdown_block
-        @created -= 1 unless @created.zero?
+        @created -= 1 unless @created == 0
         @shutdown_block.call(obj)
       else
         store_connection obj, options
@@ -137,7 +137,7 @@ class ConnectionPool::TimedStack
   ##
   # Reduce the created count
   def decrement_created
-    @created -= 1 unless @created.zero?
+    @created -= 1 unless @created == 0
   end
 
   private
@@ -178,7 +178,7 @@ class ConnectionPool::TimedStack
   # This method must shut down all connections on the stack.
   def shutdown_connections(options = nil)
     while (conn = try_fetch_connection(options))
-      @created -= 1 unless @created.zero?
+      @created -= 1 unless @created == 0
       @shutdown_block.call(conn)
     end
   end
@@ -191,7 +191,7 @@ class ConnectionPool::TimedStack
   def reserve_idle_connection(idle_seconds)
     return unless idle_connections?(idle_seconds)
 
-    @created -= 1 unless @created.zero?
+    @created -= 1 unless @created == 0
 
     @que.shift.first
   end
