@@ -99,6 +99,7 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
+    @discard_key = :"pool-#{@available.object_id}-discard"
     INSTANCES[self] = self if @auto_reload_after_fork && INSTANCES
   end
 
@@ -116,6 +117,16 @@ class ConnectionPool
   end
   alias_method :then, :with
 
+  def discard_current_connection
+    return unless ::Thread.current[@key]
+
+    if ::Thread.current[@key_count] == 1
+      ::Thread.current[@key] = @discard_key
+    else
+      ::Thread.current[@key_count] -= 1
+    end
+  end
+
   def checkout(options = {})
     if ::Thread.current[@key]
       ::Thread.current[@key_count] += 1
@@ -129,7 +140,11 @@ class ConnectionPool
   def checkin(force: false)
     if ::Thread.current[@key]
       if ::Thread.current[@key_count] == 1 || force
-        @available.push(::Thread.current[@key])
+        if ::Thread.current[@key] == @discard_key
+          @available.decrement_created
+        else
+          @available.push(::Thread.current[@key])
+        end
         ::Thread.current[@key] = nil
         ::Thread.current[@key_count] = nil
       else

@@ -186,6 +186,10 @@ class TestConnectionPool < Minitest::Test
       def mock.disconnect!
         raise "should not disconnect upon explicit return"
       end
+
+      def mock.==(other)
+        other == self
+      end
       mock
     }
 
