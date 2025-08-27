@@ -129,6 +129,25 @@ Thread.new do
 end
 ```
 
+## Discarding Connections
+
+You can discard connections in the ConnectionPool instance to remove connections that are broken and can't be restarted. 
+
+NOTE: the connection is not closed. It will just be removed from the pool so it won't be selected again.
+
+It can only be done inside the block passed to `with` or `with_timeout`.
+
+```ruby
+   pool.with do |conn|
+     begin
+       conn.execute("SELECT 1")
+     rescue SomeConnectionError
+       pool.discard_current_connection  # remove the connection from the pool
+       raise
+     end
+   end
+```
+
 ## Current State
 
 There are several methods that return information about a pool.
