@@ -149,7 +149,6 @@ class ConnectionPool
       ::Thread.current[@key]
     else
       ::Thread.current[@key_count] = 1
-      ::Thread.current[@discard_key] = false
       ::Thread.current[@key] = @available.pop(options[:timeout] || @timeout, options)
     end
   end
@@ -159,10 +158,10 @@ class ConnectionPool
       if ::Thread.current[@key_count] == 1 || force
         if ::Thread.current[@discard_key]
           @available.decrement_created
+          ::Thread.current[@discard_key] = nil
         else
           @available.push(::Thread.current[@key])
         end
-        ::Thread.current[@discard_key] = false
         ::Thread.current[@key] = nil
         ::Thread.current[@key_count] = nil
       else
