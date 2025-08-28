@@ -247,10 +247,9 @@ class TestConnectionPool < Minitest::Test
     assert_same conn, Thread.new { pool.checkout }.value
   end
 
-
   def test_discard
     pool = ConnectionPool.new(timeout: 0, size: 1) { NetworkConnection.new }
-    conn = pool.checkout
+    pool.checkout
 
     Thread.new {
       assert_raises Timeout::Error do
