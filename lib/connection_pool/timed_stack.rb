@@ -134,6 +134,12 @@ class ConnectionPool::TimedStack
     @que.length
   end
 
+  ##
+  # Reduce the created count
+  def decrement_created
+    @created -= 1 unless @created == 0
+  end
+
   private
 
   def current_time

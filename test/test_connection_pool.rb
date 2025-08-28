@@ -186,6 +186,7 @@ class TestConnectionPool < Minitest::Test
       def mock.disconnect!
         raise "should not disconnect upon explicit return"
       end
+
       mock
     }
 
@@ -244,6 +245,24 @@ class TestConnectionPool < Minitest::Test
     pool.checkin
 
     assert_same conn, Thread.new { pool.checkout }.value
+  end
+
+  def test_discard
+    pool = ConnectionPool.new(timeout: 0, size: 1) { NetworkConnection.new }
+    pool.checkout
+
+    Thread.new {
+      assert_raises Timeout::Error do
+        pool.checkout
+      end
+    }.join
+
+    pool.discard_current_connection
+    pool.checkin
+
+    assert_equal 1, pool.size
+    assert_equal 0, pool.idle
+    assert_equal 1, pool.available
   end
 
   def test_returns_value
@@ -408,6 +427,33 @@ class TestConnectionPool < Minitest::Test
     @other.join
 
     assert_equal ["inner", "outer", "other"], recorder.calls
+  end
+
+  def test_nested_discard
+    recorder = Recorder.new
+    pool = ConnectionPool.new(size: 1) { {recorder: recorder} }
+    pool.with do |r_outer|
+      @other = Thread.new { |t|
+        pool.with do |r_other|
+          r_other[:recorder].do_work("other")
+        end
+      }
+
+      pool.with do |r_inner|
+        @inner = r_inner
+        r_inner[:recorder].do_work("inner")
+        pool.discard_current_connection
+      end
+
+      Thread.pass
+
+      r_outer[:recorder].do_work("outer")
+    end
+
+    @other.join
+
+    assert_equal ["inner", "outer", "other"], recorder.calls
+    refute_same @inner, pool.checkout
   end
 
   def test_shutdown_is_executed_for_all_connections

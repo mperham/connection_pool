@@ -99,6 +99,7 @@ class ConnectionPool
     @available = TimedStack.new(@size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
+    @discard_key = :"pool-#{@available.object_id}-discard"
     INSTANCES[self] = self if @auto_reload_after_fork && INSTANCES
   end
 
@@ -116,6 +117,32 @@ class ConnectionPool
   end
   alias_method :then, :with
 
+  ##
+  # Marks the current thread's checked-out connection for discard.
+  #
+  # When a connection is marked for discard, it will not be returned to the pool
+  # when checked in. Instead, the connection will be discarded.
+  # This is useful when a connection has become invalid or corrupted
+  # and should not be reused.
+  #
+  # Note: This only affects the connection currently checked out by the calling thread.
+  # The connection will be discarded when +checkin+ is called.
+  #
+  # @return [void]
+  #
+  # @example
+  #   pool.with do |conn|
+  #     begin
+  #       conn.execute("SELECT 1")
+  #     rescue SomeConnectionError
+  #       pool.discard_current_connection  # Mark connection as bad
+  #       raise
+  #     end
+  #   end
+  def discard_current_connection
+    ::Thread.current[@discard_key] = true
+  end
+
   def checkout(options = {})
     if ::Thread.current[@key]
       ::Thread.current[@key_count] += 1
@@ -129,7 +156,12 @@ class ConnectionPool
   def checkin(force: false)
     if ::Thread.current[@key]
       if ::Thread.current[@key_count] == 1 || force
-        @available.push(::Thread.current[@key])
+        if ::Thread.current[@discard_key]
+          @available.decrement_created
+          ::Thread.current[@discard_key] = nil
+        else
+          @available.push(::Thread.current[@key])
+        end
         ::Thread.current[@key] = nil
         ::Thread.current[@key_count] = nil
       else
