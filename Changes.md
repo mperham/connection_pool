@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+2.5.4
+------
+
+- Add ability to remove a broken connection from the pool [#204, womblep]
+
 2.5.3
 ------
 
