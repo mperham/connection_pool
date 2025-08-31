@@ -165,7 +165,14 @@ class ConnectionPool
     if ::Thread.current[@key]
       if ::Thread.current[@key_count] == 1 || force
         if ::Thread.current[@discard_key]
-          checkin_discard
+          begin
+            @available.decrement_created
+            ::Thread.current[@discard_key].call(::Thread.current[@key])
+          rescue
+            nil
+          ensure
+            ::Thread.current[@discard_key] = nil
+          end
         else
           @available.push(::Thread.current[@key])
         end
@@ -179,15 +186,6 @@ class ConnectionPool
     end
 
     nil
-  end
-
-  def checkin_discard
-    @available.decrement_created
-    ::Thread.current[@discard_key].call(::Thread.current[@key])
-  rescue
-    nil
-  ensure
-    ::Thread.current[@discard_key] = nil
   end
 
   ##
