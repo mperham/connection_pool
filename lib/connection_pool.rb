@@ -125,6 +125,14 @@ class ConnectionPool
   # This is useful when a connection has become invalid or corrupted
   # and should not be reused.
   #
+  # Takes an optional block that will be called with the connection to be discarded.
+  # The block should perform any necessary clean-up on the connection.
+  #
+  # @yield [conn]
+  # @yieldparam conn [Object] The connection to be discarded.
+  # @yieldreturn [void]
+  #
+  #
   # Note: This only affects the connection currently checked out by the calling thread.
   # The connection will be discarded when +checkin+ is called.
   #
@@ -139,8 +147,8 @@ class ConnectionPool
   #       raise
   #     end
   #   end
-  def discard_current_connection
-    ::Thread.current[@discard_key] = true
+  def discard_current_connection(&block)
+    ::Thread.current[@discard_key] = block || proc { |conn| conn }
   end
 
   def checkout(options = {})
@@ -158,6 +166,7 @@ class ConnectionPool
       if ::Thread.current[@key_count] == 1 || force
         if ::Thread.current[@discard_key]
           @available.decrement_created
+          ::Thread.current[@discard_key].call(::Thread.current[@key])
           ::Thread.current[@discard_key] = nil
         else
           @available.push(::Thread.current[@key])
