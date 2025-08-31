@@ -293,7 +293,7 @@ class TestConnectionPool < Minitest::Test
       end
     }.join
 
-    pool.discard_current_connection { |conn| raise 'boom' }
+    pool.discard_current_connection { |conn| raise "boom" }
     pool.checkin
 
     assert_equal 1, pool.size
