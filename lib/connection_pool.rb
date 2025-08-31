@@ -166,7 +166,7 @@ class ConnectionPool
       if ::Thread.current[@key_count] == 1 || force
         if ::Thread.current[@discard_key]
           @available.decrement_created
-          ::Thread.current[@discard_key].call(::Thread.current[@key])
+          ::Thread.current[@discard_key].call(::Thread.current[@key]) rescue nil
           ::Thread.current[@discard_key] = nil
         else
           @available.push(::Thread.current[@key])
