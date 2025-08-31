@@ -184,7 +184,7 @@ class ConnectionPool
   def checkin_discard
     @available.decrement_created
     ::Thread.current[@discard_key].call(::Thread.current[@key])
-  rescue StandardError
+  rescue
     nil
   ensure
     ::Thread.current[@discard_key] = nil
