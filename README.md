@@ -137,6 +137,8 @@ NOTE: the connection is not closed. It will just be removed from the pool so it 
 
 It can only be done inside the block passed to `with` or `with_timeout`.
 
+Takes an optional block that will be executed with the connection.
+
 ```ruby
    pool.with do |conn|
      begin
