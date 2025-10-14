@@ -159,14 +159,15 @@ class TestConnectionPool < Minitest::Test
 
   def test_handle_interrupt_ensures_checkin
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
-    def pool.checkout(options)
+    the_pool = pool
+    pool.define_singleton_method(:checkout) do |**options|
       sleep 0.015
-      super
+      super(**options)
     end
 
     action = lambda do
       Timeout.timeout(0.01) do
-        pool.with do |obj|
+        the_pool.with do |obj|
           # Timeout::Error will be triggered by any non-trivial Ruby code
           # executed here since it couldn't be raised during checkout.
           # It looks like setting a local variable does not trigger
@@ -220,13 +221,13 @@ class TestConnectionPool < Minitest::Test
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
     stack = pool.instance_variable_get(:@available)
 
-    def stack.connection_stored?(opts)
+    stack.define_singleton_method(:connection_stored?) do |**opts|
       raise opts.to_s
     end
 
     options = {foo: 123}
     e = assert_raises do
-      pool.with(options) {}
+      pool.with(**options) {}
     end
 
     assert_equal e.message, options.to_s
@@ -388,7 +389,7 @@ class TestConnectionPool < Minitest::Test
       pool.checkout
     end
 
-    assert pool.checkout timeout: 2 * NetworkConnection::SLEEP_TIME
+    assert pool.checkout(timeout: 2 * NetworkConnection::SLEEP_TIME)
   end
 
   def test_passthru
@@ -591,7 +592,7 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal 1, pool.idle
 
-    pool.reap(0) { |recorder| recorder.do_work("reap") }
+    pool.reap(idle_seconds: 0) { |recorder| recorder.do_work("reap") }
 
     assert_equal 0, pool.idle
     assert_equal [["reap"]], recorders.map(&:calls)
@@ -607,7 +608,7 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal 3, pool.idle
 
-    pool.reap(0) { |recorder| recorder.do_work("reap") }
+    pool.reap(idle_seconds: 0) { |recorder| recorder.do_work("reap") }
 
     assert_equal 0, pool.idle
     assert_equal [["reap"]] * 3, recorders.map(&:calls)
@@ -618,7 +619,7 @@ class TestConnectionPool < Minitest::Test
 
     pool.with { |conn| conn }
 
-    pool.reap(1000) { |conn| flunk "should not reap active connection" }
+    pool.reap(idle_seconds: 1000) { |conn| flunk "should not reap active connection" }
   end
 
   def test_idle_returns_number_of_idle_connections
@@ -655,7 +656,7 @@ class TestConnectionPool < Minitest::Test
     pool.shutdown {}
 
     assert_raises ConnectionPool::PoolShuttingDownError do
-      pool.reap(0) {}
+      pool.reap(idle_seconds: 0) {}
     end
   end
 
