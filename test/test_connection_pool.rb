@@ -789,34 +789,25 @@ class TestConnectionPool < Minitest::Test
     assert_predicate(status, :success?)
   end
 
-  def test_ractors
+  def test_ractors_pool_usage
     begin
       Ractor
     rescue NameError
       skip("Ractor not available")
     end
 
-    begin
-      # TODO Ractor prints a bunch of warnings to the console, no idea
-      # how to turn it off
-      r = Ractor.new do
-        ConnectionPool.new(auto_reload_after_fork: true) { Object.new }
-        true
+    silence_warnings do
+      obj = "mike"
+      r = Ractor.new(obj) do |copy|
+        # verify we can create a pool in a Ractor and that we can
+        pool = ConnectionPool.new(auto_reload_after_fork: false) { copy }
+        checkedout = nil
+        pool.with { |y| checkedout = y }
+        checkedout
       end
-      r.take
-      # should not get here
-      refute true
-    rescue Ractor::RemoteError => re
-      # expected
-      assert re.cause
-      assert_equal Ractor::IsolationError, re.cause.class
-      assert_match(/ConnectionPool::INSTANCES/, re.cause.message)
+      result = r.take
+      assert_equal obj, result # same string but different String instance
+      refute_equal obj.object_id, result.object_id # was copied across Ractor boundary
     end
-
-    r = Ractor.new do
-      ConnectionPool.new(auto_reload_after_fork: false) { Object.new }
-      true
-    end
-    assert_equal true, r.take
   end
 end
