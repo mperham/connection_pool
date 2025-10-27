@@ -1,5 +1,11 @@
 # connection_pool Changelog
 
+HEAD
+------
+
+- Support `ConnectionPool::TimedStack#pop(exception: false)` [#207]
+  to avoid using exceptions as control flow.
+
 2.5.4
 ------
 

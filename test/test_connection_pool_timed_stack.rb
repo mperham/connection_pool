@@ -99,10 +99,19 @@ class TestConnectionPoolTimedStack < Minitest::Test
   def test_pop_empty
     e = assert_raises(ConnectionPool::TimeoutError) { @stack.pop timeout: 0 }
     assert_equal "Waited 0 sec, 0/0 available", e.message
+
+    assert_nil @stack.pop(timeout: 0, exception: false)
   end
 
   def test_pop_empty_2_0_compatibility
     e = assert_raises(Timeout::Error) { @stack.pop 0 }
+    assert_equal "Waited 0 sec, 0/0 available", e.message
+
+    assert_nil @stack.pop(0, exception: false)
+  end
+
+  def test_pop_empty_custom_exception
+    e = assert_raises(RuntimeError) { @stack.pop(timeout: 0, exception: RuntimeError) }
     assert_equal "Waited 0 sec, 0/0 available", e.message
   end
 
