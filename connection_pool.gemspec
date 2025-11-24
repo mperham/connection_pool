@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.license = "MIT"
   s.add_development_dependency "bundler"
-  s.add_development_dependency "minitest", ">= 5.0.0"
+  s.add_development_dependency "maxitest"
   s.add_development_dependency "rake"
   s.required_ruby_version = ">= 2.5.0"
 

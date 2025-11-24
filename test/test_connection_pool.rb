@@ -146,6 +146,14 @@ class TestConnectionPool < Minitest::Test
       end
     end
     assert_equal 1, pool.available
+    # Timeout.timeout creates a watcher thread and does not provide a way to
+    # shut it down so we have to disable maxitest's extra thread paranoia or
+    # else it will trigger a test failure.
+    skip_maxitest_extra_threads
+  end
+
+  def skip_maxitest_extra_threads
+    @maxitest_threads_before = Thread.list
   end
 
   def test_invalid_size
