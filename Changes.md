@@ -1,6 +1,6 @@
 # connection_pool Changelog
 
-HEAD
+2.5.5
 ------
 
 - Support `ConnectionPool::TimedStack#pop(exception: false)` [#207]
