@@ -67,10 +67,8 @@ class TestConnectionPool < Minitest::Test
   end
 
   def kill_threads(threads)
-    threads.each do |thread|
-      thread.kill
-      thread.join
-    end
+    threads.each(&:kill)
+    threads.each(&:join)
   end
 
   def test_basic_multithreaded_usage
