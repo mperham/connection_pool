@@ -9,7 +9,7 @@ class TestTimedStackSubclassing < Minitest::Test
 
   def test_try_fetch_connection
     obj = Object.new
-    stack = @klass.new(1) { obj }
+    stack = @klass.new(size: 1) { obj }
     assert_equal false, stack.send(:try_fetch_connection)
     assert_equal obj, stack.pop
     stack.push obj
@@ -19,7 +19,7 @@ class TestTimedStackSubclassing < Minitest::Test
   def test_override_try_fetch_connection
     obj = Object.new
 
-    stack = @klass.new(1) { obj }
+    stack = @klass.new(size: 1) { obj }
     stack.push stack.pop
 
     connection_stored_called = "cs_called"

@@ -110,7 +110,7 @@ Defaults to 60 seconds.
 
 ```ruby
 cp = ConnectionPool.new { Redis.new }
-cp.reap(300) { |conn| conn.close } # Reaps connections that have been idle for 300 seconds (5 minutes).
+cp.reap(idle_seconds: 300) { |conn| conn.close } # Reaps connections that have been idle for 300 seconds (5 minutes).
 ```
 
 ### Reaper Thread
@@ -123,7 +123,7 @@ cp = ConnectionPool.new { Redis.new }
 # Start a reaper thread to reap connections that have been idle for 300 seconds (5 minutes).
 Thread.new do
   loop do
-    cp.reap(300) { |conn| conn.close }
+    cp.reap(idle_seconds: 300) { |conn| conn.close }
     sleep 300
   end
 end
@@ -167,6 +167,20 @@ cp.with do |conn|
 end
 
 cp.idle # => 1
+```
+
+Upgrading from ConnectionPool 2
+---------------------------------
+
+* Support for Rubies <3.2 has been removed.
+* ConnectionPool's APIs now consistently use keyword arguments everywhere.
+Any positional arguments must be converted to keywords:
+```ruby
+pool = ConnectionPool.new(size: 5, timeout: 5)
+pool.checkout(1) # 2.x
+pool.reap(30)    # 2.x
+pool.checkout(timeout: 1) # 3.x
+pool.reap(idle_seconds: 30) # 3.x
 ```
 
 Notes

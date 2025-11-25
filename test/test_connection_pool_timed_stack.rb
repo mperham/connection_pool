@@ -6,7 +6,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_empty_eh
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
 
     refute_empty stack
 
@@ -20,7 +20,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_length
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
 
     assert_equal 1, stack.length
 
@@ -46,7 +46,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_length_after_shutdown_reload_with_checked_out_conn
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
     conn = stack.pop
     stack.shutdown(reload: true) {}
     assert_equal 0, stack.length
@@ -55,7 +55,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_idle
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
 
     assert_equal 0, stack.idle
 
@@ -69,7 +69,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_object_creation_fails
-    stack = ConnectionPool::TimedStack.new(2) { raise "failure" }
+    stack = ConnectionPool::TimedStack.new(size: 2) { raise "failure" }
 
     begin
       stack.pop
@@ -103,20 +103,13 @@ class TestConnectionPoolTimedStack < Minitest::Test
     assert_nil @stack.pop(timeout: 0, exception: false)
   end
 
-  def test_pop_empty_2_0_compatibility
-    e = assert_raises(Timeout::Error) { @stack.pop 0 }
-    assert_equal "Waited 0 sec, 0/0 available", e.message
-
-    assert_nil @stack.pop(0, exception: false)
-  end
-
   def test_pop_empty_custom_exception
     e = assert_raises(RuntimeError) { @stack.pop(timeout: 0, exception: RuntimeError) }
     assert_equal "Waited 0 sec, 0/0 available", e.message
   end
 
   def test_pop_full
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
 
     popped = stack.pop
 
@@ -125,7 +118,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_full_with_extra_conn_pushed
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
     popped = stack.pop
 
     stack.push(Object.new)
@@ -137,7 +130,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
     assert_equal 1, stack.length
     stack.pop
-    assert_raises(ConnectionPool::TimeoutError) { stack.pop(0) }
+    assert_raises(ConnectionPool::TimeoutError) { stack.pop(timeout: 0) }
   end
 
   def test_pop_wait
@@ -163,7 +156,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_shutdown_reload
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
     object = stack.pop
     stack.push(object)
 
@@ -173,16 +166,16 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_pop_raises_error_if_shutdown_reload_is_run_and_connection_is_still_in_use
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
     stack.pop
     stack.shutdown(reload: true) {}
     assert_raises ConnectionPool::TimeoutError do
-      stack.pop(0)
+      stack.pop(timeout: 0)
     end
   end
 
   def test_push
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
 
     conn = stack.pop
 
@@ -256,12 +249,12 @@ class TestConnectionPoolTimedStack < Minitest::Test
     end
 
     assert_raises(closing_error) do
-      @stack.reap(0, &reap_proc)
+      @stack.reap(idle_seconds: 0, &reap_proc)
     end
 
     assert_equal 1, called.size
 
-    @stack.reap(0, &reap_proc)
+    @stack.reap(idle_seconds: 0, &reap_proc)
     assert_equal 3, called.size
   end
 
@@ -270,7 +263,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
     called = []
 
-    @stack.reap(0) do |object|
+    @stack.reap(idle_seconds: 0) do |object|
       called << object
     end
 
@@ -279,10 +272,10 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_reap_full_stack
-    stack = ConnectionPool::TimedStack.new(1) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
     stack.push stack.pop
 
-    stack.reap(0) do |object|
+    stack.reap(idle_seconds: 0) do |object|
       nil
     end
 
@@ -295,7 +288,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
     called = []
 
-    @stack.reap(100) do |object|
+    @stack.reap(idle_seconds: 100) do |object|
       called << object
     end
 
@@ -305,18 +298,18 @@ class TestConnectionPoolTimedStack < Minitest::Test
 
   def test_reap_no_block
     assert_raises(ArgumentError) do
-      @stack.reap(0)
+      @stack.reap(idle_seconds: 0)
     end
   end
 
   def test_reap_non_numeric_idle_seconds
     assert_raises(ArgumentError) do
-      @stack.reap("0") { |object| object }
+      @stack.reap(idle_seconds: "0") { |object| object }
     end
   end
 
   def test_reap_with_multiple_connections
-    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 2) { Object.new }
     stubbed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     conn1 = stack.pop
     conn2 = stack.pop
@@ -332,7 +325,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
     called = []
 
     stack.stub :current_time, stubbed_time + 2 do
-      stack.reap(1.5) do |object|
+      stack.reap(idle_seconds: 1.5) do |object|
         called << object
       end
     end
@@ -343,7 +336,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_reap_with_multiple_connections_and_zero_idle_seconds
-    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 2) { Object.new }
     stubbed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     conn1 = stack.pop
     conn2 = stack.pop
@@ -359,7 +352,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
     called = []
 
     stack.stub :current_time, stubbed_time + 2 do
-      stack.reap(0) do |object|
+      stack.reap(idle_seconds: 0) do |object|
         called << object
       end
     end
@@ -369,7 +362,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_reap_with_multiple_connections_and_idle_seconds_outside_range
-    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 2) { Object.new }
     stubbed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     conn1 = stack.pop
     conn2 = stack.pop
@@ -385,7 +378,7 @@ class TestConnectionPoolTimedStack < Minitest::Test
     called = []
 
     stack.stub :current_time, stubbed_time + 2 do
-      stack.reap(3) do |object|
+      stack.reap(idle_seconds: 3) do |object|
         called << object
       end
     end
@@ -395,12 +388,12 @@ class TestConnectionPoolTimedStack < Minitest::Test
   end
 
   def test_reap_does_not_loop_continuously
-    stack = ConnectionPool::TimedStack.new(2) { Object.new }
+    stack = ConnectionPool::TimedStack.new(size: 2) { Object.new }
     stack.push(Object.new)
     stack.push(Object.new)
 
     close_attempts = 0
-    stack.reap(0) do |conn|
+    stack.reap(idle_seconds: 0) do |conn|
       if close_attempts >= 2
         flunk "Reap is stuck in a loop"
       end

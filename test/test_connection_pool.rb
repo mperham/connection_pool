@@ -7,21 +7,25 @@ class TestConnectionPool < Minitest::Test
   end
 
   class NetworkConnection
-    SLEEP_TIME = 0.1
+    SLEEP_TIME = 0.02
 
     def initialize
       @x = 0
     end
 
+    def pass
+      Thread.pass
+    end
+
     def do_something(*_args, increment: 1)
       @x += increment
-      sleep SLEEP_TIME
+      pass
       @x
     end
 
     def do_something_with_positional_hash(options)
       @x += options[:increment] || 1
-      sleep SLEEP_TIME
+      pass
       @x
     end
 
@@ -31,7 +35,7 @@ class TestConnectionPool < Minitest::Test
 
     def do_something_with_block
       @x += yield
-      sleep SLEEP_TIME
+      pass
       @x
     end
 
@@ -72,9 +76,6 @@ class TestConnectionPool < Minitest::Test
   def test_basic_multithreaded_usage
     pool_size = 5
     pool = ConnectionPool.new(size: pool_size) { NetworkConnection.new }
-
-    start = Time.new
-
     generations = 3
 
     result = Array.new(pool_size * generations) {
@@ -85,11 +86,7 @@ class TestConnectionPool < Minitest::Test
       end
     }.map(&:value)
 
-    finish = Time.new
-
     assert_equal((1..generations).cycle(pool_size).sort, result.sort)
-
-    assert_operator(finish - start, :>, generations * NetworkConnection::SLEEP_TIME)
   end
 
   def test_timeout
@@ -167,7 +164,7 @@ class TestConnectionPool < Minitest::Test
 
   def test_handle_interrupt_ensures_checkin
     pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
-    def pool.checkout(options)
+    def pool.checkout(**options)
       sleep 0.015
       super
     end
@@ -234,7 +231,7 @@ class TestConnectionPool < Minitest::Test
 
     options = {foo: 123}
     e = assert_raises do
-      pool.with(options) {}
+      pool.with(**options) {}
     end
 
     assert_equal e.message, options.to_s
@@ -396,7 +393,7 @@ class TestConnectionPool < Minitest::Test
       pool.checkout
     end
 
-    assert pool.checkout timeout: 2 * NetworkConnection::SLEEP_TIME
+    assert pool.checkout(timeout: 2 * NetworkConnection::SLEEP_TIME)
   end
 
   def test_passthru
@@ -475,7 +472,7 @@ class TestConnectionPool < Minitest::Test
 
   def test_nested_discard
     recorder = Recorder.new
-    pool = ConnectionPool.new(size: 1) { {recorder: recorder} }
+    pool = ConnectionPool.new(size: 1, timeout: 0.01) { {recorder: recorder} }
     pool.with do |r_outer|
       @other = Thread.new { |t|
         pool.with do |r_other|
@@ -599,7 +596,7 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal 1, pool.idle
 
-    pool.reap(0) { |recorder| recorder.do_work("reap") }
+    pool.reap(idle_seconds: 0) { |recorder| recorder.do_work("reap") }
 
     assert_equal 0, pool.idle
     assert_equal [["reap"]], recorders.map(&:calls)
@@ -615,7 +612,7 @@ class TestConnectionPool < Minitest::Test
 
     assert_equal 3, pool.idle
 
-    pool.reap(0) { |recorder| recorder.do_work("reap") }
+    pool.reap(idle_seconds: 0) { |recorder| recorder.do_work("reap") }
 
     assert_equal 0, pool.idle
     assert_equal [["reap"]] * 3, recorders.map(&:calls)
@@ -626,7 +623,7 @@ class TestConnectionPool < Minitest::Test
 
     pool.with { |conn| conn }
 
-    pool.reap(1000) { |conn| flunk "should not reap active connection" }
+    pool.reap(idle_seconds: 1000) { |conn| flunk "should not reap active connection" }
   end
 
   def test_idle_returns_number_of_idle_connections
@@ -663,7 +660,7 @@ class TestConnectionPool < Minitest::Test
     pool.shutdown {}
 
     assert_raises ConnectionPool::PoolShuttingDownError do
-      pool.reap(0) {}
+      pool.reap(idle_seconds: 0) {}
     end
   end
 

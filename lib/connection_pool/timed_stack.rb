@@ -5,7 +5,7 @@
 #
 # Examples:
 #
-#    ts = TimedStack.new(1) { MyConnection.new }
+#    ts = TimedStack.new(size: 1) { MyConnection.new }
 #
 #    # fetch a connection
 #    conn = ts.pop
@@ -22,7 +22,7 @@ class ConnectionPool::TimedStack
   ##
   # Creates a new pool with +size+ connections that are created from the given
   # +block+.
-  def initialize(size = 0, &block)
+  def initialize(size: 0, &block)
     @create_block = block
     @created = 0
     @que = []
@@ -33,15 +33,15 @@ class ConnectionPool::TimedStack
   end
 
   ##
-  # Returns +obj+ to the stack. +options+ is ignored in TimedStack but may be
+  # Returns +obj+ to the stack. +kwargs+ is ignored in TimedStack but may be
   # used by subclasses that extend TimedStack.
-  def push(obj, options = {})
+  def push(obj, **options)
     @mutex.synchronize do
       if @shutdown_block
         @created -= 1 unless @created == 0
         @shutdown_block.call(obj)
       else
-        store_connection obj, options
+        store_connection obj, **options
       end
 
       @resource.broadcast
@@ -60,26 +60,22 @@ class ConnectionPool::TimedStack
   #
   # The +timeout+ argument will be removed in 3.0.
   # Other options may be used by subclasses that extend TimedStack.
-  def pop(timeout = 0.5, options = {})
-    options, timeout = timeout, 0.5 if Hash === timeout
-    timeout = options.fetch :timeout, timeout
-
+  def pop(timeout: 0.5, exception: ConnectionPool::TimeoutError, **options)
     deadline = current_time + timeout
     @mutex.synchronize do
       loop do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
-        if (conn = try_fetch_connection(options))
+        if (conn = try_fetch_connection(**options))
           return conn
         end
 
-        connection = try_create(options)
+        connection = try_create(**options)
         return connection if connection
 
         to_wait = deadline - current_time
         if to_wait <= 0
-          exc = options.fetch(:exception, ConnectionPool::TimeoutError)
-          if exc
-            raise ConnectionPool::TimeoutError, "Waited #{timeout} sec, #{length}/#{@max} available"
+          if exception
+            raise exception, "Waited #{timeout} sec, #{length}/#{@max} available"
           else
             return nil
           end
@@ -108,7 +104,7 @@ class ConnectionPool::TimedStack
 
   ##
   # Reaps connections that were checked in more than +idle_seconds+ ago.
-  def reap(idle_seconds, &block)
+  def reap(idle_seconds:, &block)
     raise ArgumentError, "reap must receive a block" unless block
     raise ArgumentError, "idle_seconds must be a number" unless idle_seconds.is_a?(Numeric)
     raise ConnectionPool::PoolShuttingDownError if @shutdown_block
@@ -162,15 +158,15 @@ class ConnectionPool::TimedStack
   # This method must returns a connection from the stack if one exists. Allows
   # subclasses with expensive match/search algorithms to avoid double-handling
   # their stack.
-  def try_fetch_connection(options = nil)
-    connection_stored?(options) && fetch_connection(options)
+  def try_fetch_connection(**options)
+    connection_stored?(**options) && fetch_connection(**options)
   end
 
   ##
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must returns true if a connection is available on the stack.
-  def connection_stored?(options = nil)
+  def connection_stored?(**options)
     !@que.empty?
   end
 
@@ -178,7 +174,7 @@ class ConnectionPool::TimedStack
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must return a connection from the stack.
-  def fetch_connection(options = nil)
+  def fetch_connection(**options)
     @que.pop&.first
   end
 
@@ -186,8 +182,8 @@ class ConnectionPool::TimedStack
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must shut down all connections on the stack.
-  def shutdown_connections(options = nil)
-    while (conn = try_fetch_connection(options))
+  def shutdown_connections(**options)
+    while (conn = try_fetch_connection(**options))
       @created -= 1 unless @created == 0
       @shutdown_block.call(conn)
     end
@@ -218,7 +214,7 @@ class ConnectionPool::TimedStack
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must return +obj+ to the stack.
-  def store_connection(obj, options = nil)
+  def store_connection(obj, **options)
     @que.push [obj, current_time]
   end
 
@@ -227,7 +223,7 @@ class ConnectionPool::TimedStack
   #
   # This method must create a connection if and only if the total number of
   # connections allowed has not been met.
-  def try_create(options = nil)
+  def try_create(**options)
     unless @created == @max
       object = @create_block.call
       @created += 1

@@ -1,5 +1,13 @@
 # connection_pool Changelog
 
+3.0.0
+------
+
+- **BREAKING CHANGES** `ConnectionPool` and `ConnectionPool::TimedStack` now
+  use keyword arguments rather than positional arguments everywhere.
+  See README for upgrade notes.
+- Dropped support for Ruby <3.2.0
+
 2.5.5
 ------
 
