@@ -19,7 +19,7 @@ class TestConnectionPool < Minitest::Test
 
     def do_something(*_args, increment: 1)
       @x += increment
-      pass
+      sleep 0.02
       @x
     end
 
@@ -810,7 +810,8 @@ class TestConnectionPool < Minitest::Test
         pool.with { |y| checkedout = y }
         checkedout
       end
-      result = r.take
+
+      result = (RUBY_VERSION < "4") ? r.take : r.value
       assert_equal obj, result # same string but different String instance
       refute_equal obj.object_id, result.object_id # was copied across Ractor boundary
     end
