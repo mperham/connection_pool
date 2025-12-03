@@ -15,10 +15,18 @@ Gem::Specification.new do |s|
   s.executables = []
   s.require_paths = ["lib"]
   s.license = "MIT"
+
+  s.required_ruby_version = ">= 3.2.0"
   s.add_development_dependency "bundler"
   s.add_development_dependency "maxitest"
   s.add_development_dependency "rake"
-  s.required_ruby_version = ">= 2.5.0"
 
-  s.metadata = {"changelog_uri" => "https://github.com/mperham/connection_pool/blob/main/Changes.md", "rubygems_mfa_required" => "true"}
+  s.metadata = {
+    "bug_tracker_uri" => "https://github.com/mperham/connection_pool/issues",
+    "documentation_uri" => "https://github.com/mperham/connection_pool/wiki",
+    "changelog_uri" => "https://github.com/mperham/connection_pool/blob/main/Changes.md",
+    "source_code_uri" => "https://github.com/mperham/connection_pool",
+    "homepage_uri" => "https://github.com/mperham/connection_pool",
+    "rubygems_mfa_required" => "true"
+  }
 end
