@@ -39,10 +39,8 @@ end
 # - :auto_reload_after_fork - automatically drop all connections after fork, defaults to true
 #
 class ConnectionPool
-  DEFAULTS = {size: 5, timeout: 5, auto_reload_after_fork: true}.freeze
-
-  def self.wrap(options, &block)
-    Wrapper.new(options, &block)
+  def self.wrap(**, &)
+    Wrapper.new(**, &)
   end
 
   if Process.respond_to?(:fork)
@@ -66,19 +64,18 @@ class ConnectionPool
       nil
     end
 
-    if ::Process.respond_to?(:_fork) # MRI 3.1+
-      module ForkTracker
-        def _fork
-          pid = super
-          if pid == 0
-            ConnectionPool.after_fork
-          end
-          pid
+    module ForkTracker
+      def _fork
+        pid = super
+        if pid == 0
+          ConnectionPool.after_fork
         end
+        pid
       end
-      Process.singleton_class.prepend(ForkTracker)
     end
+    Process.singleton_class.prepend(ForkTracker)
   else
+    # JRuby, et al
     INSTANCES = nil
     private_constant :INSTANCES
 
@@ -87,28 +84,26 @@ class ConnectionPool
     end
   end
 
-  def initialize(options = {}, &block)
-    raise ArgumentError, "Connection pool requires a block" unless block
+  def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, &)
+    raise ArgumentError, "Connection pool requires a block" unless block_given?
 
-    options = DEFAULTS.merge(options)
+    @size = Integer(size)
+    @timeout = Float(timeout)
+    @auto_reload_after_fork = auto_reload_after_fork
 
-    @size = Integer(options.fetch(:size))
-    @timeout = options.fetch(:timeout)
-    @auto_reload_after_fork = options.fetch(:auto_reload_after_fork)
-
-    @available = TimedStack.new(@size, &block)
+    @available = TimedStack.new(size: @size, &)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
     @discard_key = :"pool-#{@available.object_id}-discard"
     INSTANCES[self] = self if @auto_reload_after_fork && INSTANCES
   end
 
-  def with(options = {})
+  def with(**)
     # We need to manage exception handling manually here in order
     # to work correctly with `Timeout.timeout` and `Thread#raise`.
     # Otherwise an interrupted Thread can leak connections.
     Thread.handle_interrupt(Exception => :never) do
-      conn = checkout(options)
+      conn = checkout(**)
       begin
         Thread.handle_interrupt(Exception => :immediate) do
           yield conn
@@ -154,13 +149,15 @@ class ConnectionPool
     ::Thread.current[@discard_key] = block || proc { |conn| conn }
   end
 
-  def checkout(options = {})
+  def checkout(**options)
     if ::Thread.current[@key]
       ::Thread.current[@key_count] += 1
       ::Thread.current[@key]
     else
+      conn = @available.pop(timeout: options.fetch(:timeout, @timeout), **options)
+      ::Thread.current[@key] = conn
       ::Thread.current[@key_count] = 1
-      ::Thread.current[@key] = @available.pop(options[:timeout] || @timeout, options)
+      conn
     end
   end
 
@@ -209,8 +206,8 @@ class ConnectionPool
 
   ## Reaps idle connections that have been idle for over +idle_seconds+.
   # +idle_seconds+ defaults to 60.
-  def reap(idle_seconds = 60, &block)
-    @available.reap(idle_seconds, &block)
+  def reap(idle_seconds: 60, &block)
+    @available.reap(idle_seconds:, &block)
   end
 
   # Size of this connection pool

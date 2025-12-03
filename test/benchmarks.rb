@@ -7,6 +7,6 @@ CP = ConnectionPool.new { Object.new }
 
 Benchmark.ips do |x|
   x.report("ConnectionPool#with") do
-    CP.with {|x| }
+    CP.with { |x| }
   end
 end
