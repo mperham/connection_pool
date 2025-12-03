@@ -84,14 +84,14 @@ class ConnectionPool
     end
   end
 
-  def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, &block)
-    raise ArgumentError, "Connection pool requires a block" unless block
+  def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, &)
+    raise ArgumentError, "Connection pool requires a block" unless block_given?
 
     @size = Integer(size)
     @timeout = Float(timeout)
     @auto_reload_after_fork = auto_reload_after_fork
 
-    @available = TimedStack.new(size: @size, &block)
+    @available = TimedStack.new(size: @size, &)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
     @discard_key = :"pool-#{@available.object_id}-discard"

@@ -2,20 +2,20 @@ class ConnectionPool
   class Wrapper < ::BasicObject
     METHODS = [:with, :pool_shutdown, :wrapped_pool]
 
-    def initialize(**options, &block)
-      @pool = options.fetch(:pool) { ::ConnectionPool.new(**options, &block) }
+    def initialize(**options, &)
+      @pool = options.fetch(:pool) { ::ConnectionPool.new(**options, &) }
     end
 
     def wrapped_pool
       @pool
     end
 
-    def with(**, &block)
-      @pool.with(**, &block)
+    def with(**, &)
+      @pool.with(**, &)
     end
 
-    def pool_shutdown(&block)
-      @pool.shutdown(&block)
+    def pool_shutdown(&)
+      @pool.shutdown(&)
     end
 
     def pool_size

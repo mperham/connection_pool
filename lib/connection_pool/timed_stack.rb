@@ -104,7 +104,7 @@ class ConnectionPool::TimedStack
 
   ##
   # Reaps connections that were checked in more than +idle_seconds+ ago.
-  def reap(idle_seconds:, &)
+  def reap(idle_seconds:)
     raise ArgumentError, "reap must receive a block" unless block_given?
     raise ArgumentError, "idle_seconds must be a number" unless idle_seconds.is_a?(Numeric)
     raise ConnectionPool::PoolShuttingDownError if @shutdown_block
