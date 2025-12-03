@@ -43,59 +43,18 @@ class ConnectionPool
     Wrapper.new(**, &)
   end
 
-  if Process.respond_to?(:fork)
-    INSTANCES = ObjectSpace::WeakMap.new
-    private_constant :INSTANCES
-
-    def self.after_fork
-      INSTANCES.values.each do |pool|
-        next unless pool.auto_reload_after_fork
-
-        # We're on after fork, so we know all other threads are dead.
-        # All we need to do is to ensure the main thread doesn't have a
-        # checked out connection
-        pool.checkin(force: true)
-        pool.reload do |connection|
-          # Unfortunately we don't know what method to call to close the connection,
-          # so we try the most common one.
-          connection.close if connection.respond_to?(:close)
-        end
-      end
-      nil
-    end
-
-    module ForkTracker
-      def _fork
-        pid = super
-        if pid == 0
-          ConnectionPool.after_fork
-        end
-        pid
-      end
-    end
-    Process.singleton_class.prepend(ForkTracker)
-  else
-    # JRuby, et al
-    INSTANCES = nil
-    private_constant :INSTANCES
-
-    def self.after_fork
-      # noop
-    end
-  end
+  attr_reader :size
 
   def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, &)
     raise ArgumentError, "Connection pool requires a block" unless block_given?
 
     @size = Integer(size)
     @timeout = Float(timeout)
-    @auto_reload_after_fork = auto_reload_after_fork
-
     @available = TimedStack.new(size: @size, &)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
     @discard_key = :"pool-#{@available.object_id}-discard"
-    INSTANCES[self] = self if @auto_reload_after_fork && INSTANCES
+    INSTANCES[self] = self if auto_reload_after_fork && INSTANCES
   end
 
   def with(**)
@@ -149,12 +108,12 @@ class ConnectionPool
     ::Thread.current[@discard_key] = block || proc { |conn| conn }
   end
 
-  def checkout(**options)
+  def checkout(timeout: @timeout, **)
     if ::Thread.current[@key]
       ::Thread.current[@key_count] += 1
       ::Thread.current[@key]
     else
-      conn = @available.pop(timeout: options.fetch(:timeout, @timeout), **options)
+      conn = @available.pop(timeout:, **)
       ::Thread.current[@key] = conn
       ::Thread.current[@key_count] = 1
       conn
@@ -192,28 +151,23 @@ class ConnectionPool
   # Shuts down the ConnectionPool by passing each connection to +block+ and
   # then removing it from the pool. Attempting to checkout a connection after
   # shutdown will raise +ConnectionPool::PoolShuttingDownError+.
-  def shutdown(&block)
-    @available.shutdown(&block)
+  def shutdown(&)
+    @available.shutdown(&)
   end
 
   ##
   # Reloads the ConnectionPool by passing each connection to +block+ and then
   # removing it the pool. Subsequent checkouts will create new connections as
   # needed.
-  def reload(&block)
-    @available.shutdown(reload: true, &block)
+  def reload(&)
+    @available.shutdown(reload: true, &)
   end
 
   ## Reaps idle connections that have been idle for over +idle_seconds+.
   # +idle_seconds+ defaults to 60.
-  def reap(idle_seconds: 60, &block)
-    @available.reap(idle_seconds:, &block)
+  def reap(idle_seconds: 60, &)
+    @available.reap(idle_seconds:, &)
   end
-
-  # Size of this connection pool
-  attr_reader :size
-  # Automatically drop all connections after fork
-  attr_reader :auto_reload_after_fork
 
   # Number of pool entries available for checkout at this instant.
   def available
@@ -228,3 +182,4 @@ end
 
 require_relative "connection_pool/timed_stack"
 require_relative "connection_pool/wrapper"
+require_relative "connection_pool/fork"
