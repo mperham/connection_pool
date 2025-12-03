@@ -1,4 +1,10 @@
 source "https://rubygems.org"
 
-gemspec(development_group: :runtime)
-gem "standard", group: [:development, :test]
+gemspec
+gem "standard"
+gem "benchmark-ips"
+
+group :test do
+  gem "maxitest"
+  gem "simplecov"
+end
