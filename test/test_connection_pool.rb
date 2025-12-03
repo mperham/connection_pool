@@ -690,6 +690,9 @@ class TestConnectionPool < Minitest::Test
         assert_raises Timeout::Error do
           wrapper.with { flunk "connection checked out :(" }
         end
+        assert_raises Timeout::Error do
+          wrapper.with(timeout: 0.1) { flunk "connection checked out :(" }
+        end
       }.join
     end
 

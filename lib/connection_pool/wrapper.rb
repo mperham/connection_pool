@@ -10,8 +10,8 @@ class ConnectionPool
       @pool
     end
 
-    def with(&block)
-      @pool.with(&block)
+    def with(**, &block)
+      @pool.with(**, &block)
     end
 
     def pool_shutdown(&block)
