@@ -25,5 +25,5 @@ jobs:
       run: bundle exec standardrb --no-fix
 
     - name: Run tests
-      timeout-minutes: 5
+      timeout-minutes: 1
       run: ${{matrix.env}} bundle exec rake test
