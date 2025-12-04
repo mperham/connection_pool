@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+3.0.1
+------
+
+- Add missing `fork.rb` to gemspec.
+
 3.0.0
 ------
 
