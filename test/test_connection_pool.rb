@@ -510,7 +510,7 @@ class TestConnectionPool < Minitest::Test
 
     kill_threads(threads)
 
-    assert_equal [["shutdown"]] * 3, recorders.map { |r| r.calls }
+    assert_equal %w[shutdown shutdown shutdown], recorders.map { |r| r.calls }.flatten
   end
 
   def test_checkout_after_reload_cannot_create_new_connections_beyond_size

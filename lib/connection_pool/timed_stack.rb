@@ -58,7 +58,6 @@ class ConnectionPool::TimedStack
   # @option options [Class] :exception (ConnectionPool::TimeoutError) Exception class to raise
   #   if an entry was not available within the timeout period. Use `exception: false` to return nil.
   #
-  # The +timeout+ argument will be removed in 3.0.
   # Other options may be used by subclasses that extend TimedStack.
   def pop(timeout: 0.5, exception: ConnectionPool::TimeoutError, **)
     deadline = current_time + timeout
@@ -109,7 +108,8 @@ class ConnectionPool::TimedStack
     raise ArgumentError, "idle_seconds must be a number" unless idle_seconds.is_a?(Numeric)
     raise ConnectionPool::PoolShuttingDownError if @shutdown_block
 
-    idle.times do
+    count = idle
+    count.times do
       conn = @mutex.synchronize do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
         reserve_idle_connection(idle_seconds)
@@ -197,6 +197,8 @@ class ConnectionPool::TimedStack
 
     @created -= 1 unless @created == 0
 
+    # Most active elements are at the tail of the array.
+    # Most idle will be at the head so `shift` rather than `pop`.
     @que.shift.first
   end
 
@@ -205,7 +207,10 @@ class ConnectionPool::TimedStack
   #
   # Returns true if the first connection in the stack has been idle for more than idle_seconds
   def idle_connections?(idle_seconds)
-    connection_stored? && (current_time - @que.first.last > idle_seconds)
+    return unless connection_stored?
+    # Most idle will be at the head so `first`
+    age = (current_time - @que.first.last)
+    age > idle_seconds
   end
 
   ##
