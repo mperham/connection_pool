@@ -514,7 +514,7 @@ class TestConnectionPool < Minitest::Test
   end
 
   def test_checkout_after_reload_cannot_create_new_connections_beyond_size
-    pool = ConnectionPool.new(size: 1) { Object.new }
+    pool = ConnectionPool.new(size: 1, name: "bob") { Object.new }
     threads = use_pool pool, 1
     pool.reload {}
     assert_raises ConnectionPool::TimeoutError do

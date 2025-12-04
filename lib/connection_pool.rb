@@ -45,7 +45,7 @@ class ConnectionPool
 
   attr_reader :size
 
-  def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, &)
+  def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, name: nil, &)
     raise ArgumentError, "Connection pool requires a block" unless block_given?
 
     @size = Integer(size)
