@@ -4,8 +4,14 @@
 ------
 
 - **BREAKING CHANGES** `ConnectionPool` and `ConnectionPool::TimedStack` now
-  use keyword arguments rather than positional arguments everywhere.
-  See README for upgrade notes.
+  use keyword arguments rather than positional arguments everywhere. Expected impact is minimal as most people use the `with` API, which is unchanged.
+```ruby
+pool = ConnectionPool.new(size: 5, timeout: 5)
+pool.checkout(1) # 2.x
+pool.reap(30)    # 2.x
+pool.checkout(timeout: 1) # 3.x
+pool.reap(idle_seconds: 30) # 3.x
+```
 - Dropped support for Ruby <3.2.0
 
 2.5.5

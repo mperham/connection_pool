@@ -38,7 +38,7 @@ connection pool and a raw client.
 $redis.then { |r| r.set 'foo' 'bar' }
 ```
 
-Optionally, you can specify a timeout override using the with-block semantics:
+Optionally, you can specify a timeout override:
 
 ``` ruby
 $memcached.with(timeout: 2.0) do |conn|
@@ -46,8 +46,7 @@ $memcached.with(timeout: 2.0) do |conn|
 end
 ```
 
-This will only modify the resource-get timeout for this particular
-invocation.
+This will only modify the timeout for this particular invocation.
 This is useful if you want to fail-fast on certain non-critical
 sections when a resource is not available, or conversely if you are comfortable blocking longer on a particular resource.
 
@@ -71,7 +70,7 @@ $redis.with do |conn|
 end
 ```
 
-Once you've ported your entire system to use `with`, you can simply remove `Wrapper` and use the simpler and faster `ConnectionPool`.
+Once you've ported your entire system to use `with`, you can remove `::Wrapper` and use `ConnectionPool` directly.
 
 
 ## Shutdown
@@ -89,16 +88,17 @@ Shutting down a connection pool will block until all connections are checked in 
 
 ## Reload
 
-You can reload a ConnectionPool instance in the case it is desired to close all connections to the pool and, unlike `shutdown`, afterwards recreate connections so the pool may continue to be used.
-Reloading may be useful after forking the process.
+You can reload a ConnectionPool instance if it is necessary to close all existing connections and continue to use the pool.
+ConnectionPool will automatically reload if the process is forked.
+Use `auto_reload_after_fork: false` if you don't want this behavior.
 
 ```ruby
-cp = ConnectionPool.new { Redis.new }
-cp.reload { |conn| conn.quit }
+cp = ConnectionPool.new(auto_reload_after_fork: false) { Redis.new }
+cp.reload { |conn| conn.quit } # reload manually
 cp.with { |conn| conn.get('some-count') }
 ```
 
-Like `shutdown`, this will block until all connections are checked in and closed.
+Like `shutdown`, `reload` will block until all connections are checked in and closed.
 
 ## Reap
 
@@ -113,20 +113,16 @@ cp = ConnectionPool.new { Redis.new }
 # idle more than 300 seconds (5 minutes)
 Thread.new do
   loop do
-    cp.reap(idle_seconds: 300) { |conn| conn.close }
-    sleep 300
+    cp.reap(idle_seconds: 300, &:close)
+    sleep 30
   end
 end
 ```
 
 ## Discarding Connections
 
-You can discard connections in the ConnectionPool instance to remove connections that are broken and can't be restarted. 
-
-NOTE: the connection is not closed. It will just be removed from the pool so it won't be selected again.
-
-It can only be done inside the block passed to `with` or `with_timeout`.
-
+You can discard connections in the ConnectionPool instance to remove connections that are broken and can't be repaired. 
+It can only be done inside the block passed to `with`.
 Takes an optional block that will be executed with the connection.
 
 ```ruby
@@ -134,7 +130,7 @@ pool.with do |conn|
   begin
     conn.execute("SELECT 1")
   rescue SomeConnectionError
-    pool.discard_current_connection  # remove the connection from the pool
+    pool.discard_current_connection(&:close)  # remove the connection from the pool
     raise
   end
 end
