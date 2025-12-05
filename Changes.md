@@ -1,5 +1,10 @@
 # connection_pool Changelog
 
+3.0.2
+------
+
+- Support :name keyword for backwards compatibility [#210]
+
 3.0.1
 ------
 
