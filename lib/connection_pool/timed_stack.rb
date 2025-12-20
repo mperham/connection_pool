@@ -35,13 +35,13 @@ class ConnectionPool::TimedStack
   ##
   # Returns +obj+ to the stack. Additional kwargs are ignored in TimedStack but may be
   # used by subclasses that extend TimedStack.
-  def push(obj, **)
+  def push(obj, **kwargs)
     @mutex.synchronize do
       if @shutdown_block
         @created -= 1 unless @created == 0
         @shutdown_block.call(obj)
       else
-        store_connection obj, **
+        store_connection obj, **kwargs
       end
 
       @resource.broadcast
@@ -59,16 +59,16 @@ class ConnectionPool::TimedStack
   #   if an entry was not available within the timeout period. Use `exception: false` to return nil.
   #
   # Other options may be used by subclasses that extend TimedStack.
-  def pop(timeout: 0.5, exception: ConnectionPool::TimeoutError, **)
+  def pop(timeout: 0.5, exception: ConnectionPool::TimeoutError, **kwargs)
     deadline = current_time + timeout
     @mutex.synchronize do
       loop do
         raise ConnectionPool::PoolShuttingDownError if @shutdown_block
-        if (conn = try_fetch_connection(**))
+        if (conn = try_fetch_connection(**kwargs))
           return conn
         end
 
-        connection = try_create(**)
+        connection = try_create(**kwargs)
         return connection if connection
 
         to_wait = deadline - current_time
@@ -156,15 +156,15 @@ class ConnectionPool::TimedStack
   # This method must returns a connection from the stack if one exists. Allows
   # subclasses with expensive match/search algorithms to avoid double-handling
   # their stack.
-  def try_fetch_connection(**)
-    connection_stored?(**) && fetch_connection(**)
+  def try_fetch_connection(**kwargs)
+    connection_stored?(**kwargs) && fetch_connection(**kwargs)
   end
 
   ##
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must returns true if a connection is available on the stack.
-  def connection_stored?(**)
+  def connection_stored?(**_kwargs)
     !@que.empty?
   end
 
@@ -172,7 +172,7 @@ class ConnectionPool::TimedStack
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must return a connection from the stack.
-  def fetch_connection(**)
+  def fetch_connection(**_kwargs)
     @que.pop&.first
   end
 
@@ -180,8 +180,8 @@ class ConnectionPool::TimedStack
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must shut down all connections on the stack.
-  def shutdown_connections(**)
-    while (conn = try_fetch_connection(**))
+  def shutdown_connections(**kwargs)
+    while (conn = try_fetch_connection(**kwargs))
       @created -= 1 unless @created == 0
       @shutdown_block.call(conn)
     end
@@ -217,7 +217,7 @@ class ConnectionPool::TimedStack
   # This is an extension point for TimedStack and is called with a mutex.
   #
   # This method must return +obj+ to the stack.
-  def store_connection(obj, **)
+  def store_connection(obj, **_kwargs)
     @que.push [obj, current_time]
   end
 
@@ -226,7 +226,7 @@ class ConnectionPool::TimedStack
   #
   # This method must create a connection if and only if the total number of
   # connections allowed has not been met.
-  def try_create(**)
+  def try_create(**_kwargs)
     unless @created == @max
       object = @create_block.call
       @created += 1

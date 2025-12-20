@@ -2,20 +2,20 @@ class ConnectionPool
   class Wrapper < ::BasicObject
     METHODS = [:with, :pool_shutdown, :wrapped_pool]
 
-    def initialize(**options, &)
-      @pool = options.fetch(:pool) { ::ConnectionPool.new(**options, &) }
+    def initialize(**options, &block)
+      @pool = options.fetch(:pool) { ::ConnectionPool.new(**options, &block) }
     end
 
     def wrapped_pool
       @pool
     end
 
-    def with(**, &)
-      @pool.with(**, &)
+    def with(**kwargs, &block)
+      @pool.with(**kwargs, &block)
     end
 
-    def pool_shutdown(&)
-      @pool.shutdown(&)
+    def pool_shutdown(&block)
+      @pool.shutdown(&block)
     end
 
     def pool_size
@@ -26,17 +26,17 @@ class ConnectionPool
       @pool.available
     end
 
-    def respond_to?(id, *, **)
-      METHODS.include?(id) || with { |c| c.respond_to?(id, *, **) }
+    def respond_to?(id, *args, **kwargs)
+      METHODS.include?(id) || with { |c| c.respond_to?(id, *args, **kwargs) }
     end
 
-    def respond_to_missing?(id, *, **)
-      with { |c| c.respond_to?(id, *, **) }
+    def respond_to_missing?(id, *args, **kwargs)
+      with { |c| c.respond_to?(id, *args, **kwargs) }
     end
 
-    def method_missing(name, *, **, &)
+    def method_missing(name, *args, **kwargs, &block)
       with do |connection|
-        connection.send(name, *, **, &)
+        connection.send(name, *args, **kwargs, &block)
       end
     end
   end

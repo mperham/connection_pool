@@ -39,30 +39,30 @@ end
 # - :auto_reload_after_fork - automatically drop all connections after fork, defaults to true
 #
 class ConnectionPool
-  def self.wrap(**, &)
-    Wrapper.new(**, &)
+  def self.wrap(**kwargs, &block)
+    Wrapper.new(**kwargs, &block)
   end
 
   attr_reader :size
 
-  def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, name: nil, &)
+  def initialize(timeout: 5, size: 5, auto_reload_after_fork: true, name: nil, &block)
     raise ArgumentError, "Connection pool requires a block" unless block_given?
 
     @size = Integer(size)
     @timeout = Float(timeout)
-    @available = TimedStack.new(size: @size, &)
+    @available = TimedStack.new(size: @size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
     @discard_key = :"pool-#{@available.object_id}-discard"
     INSTANCES[self] = self if auto_reload_after_fork && INSTANCES
   end
 
-  def with(**)
+  def with(**kwargs)
     # We need to manage exception handling manually here in order
     # to work correctly with `Timeout.timeout` and `Thread#raise`.
     # Otherwise an interrupted Thread can leak connections.
     Thread.handle_interrupt(Exception => :never) do
-      conn = checkout(**)
+      conn = checkout(**kwargs)
       begin
         Thread.handle_interrupt(Exception => :immediate) do
           yield conn
@@ -108,12 +108,12 @@ class ConnectionPool
     ::Thread.current[@discard_key] = block || proc { |conn| conn }
   end
 
-  def checkout(timeout: @timeout, **)
+  def checkout(timeout: @timeout, **kwargs)
     if ::Thread.current[@key]
       ::Thread.current[@key_count] += 1
       ::Thread.current[@key]
     else
-      conn = @available.pop(timeout:, **)
+      conn = @available.pop(timeout:, **kwargs)
       ::Thread.current[@key] = conn
       ::Thread.current[@key_count] = 1
       conn
@@ -151,22 +151,22 @@ class ConnectionPool
   # Shuts down the ConnectionPool by passing each connection to +block+ and
   # then removing it from the pool. Attempting to checkout a connection after
   # shutdown will raise +ConnectionPool::PoolShuttingDownError+.
-  def shutdown(&)
-    @available.shutdown(&)
+  def shutdown(&block)
+    @available.shutdown(&block)
   end
 
   ##
   # Reloads the ConnectionPool by passing each connection to +block+ and then
   # removing it the pool. Subsequent checkouts will create new connections as
   # needed.
-  def reload(&)
-    @available.shutdown(reload: true, &)
+  def reload(&block)
+    @available.shutdown(reload: true, &block)
   end
 
   ## Reaps idle connections that have been idle for over +idle_seconds+.
   # +idle_seconds+ defaults to 60.
-  def reap(idle_seconds: 60, &)
-    @available.reap(idle_seconds:, &)
+  def reap(idle_seconds: 60, &block)
+    @available.reap(idle_seconds:, &block)
   end
 
   # Number of pool entries available for checkout at this instant.
