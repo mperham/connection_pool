@@ -4,6 +4,7 @@ Bundler.require(:default, :test)
 require "minitest/pride"
 require "maxitest/autorun"
 require "maxitest/threads"
+require "minitest/mock"
 # require "maxitest/timeout"
 # Maxitest.timeout = 0.5
 
