@@ -123,20 +123,23 @@ class ConnectionPool
   def checkin(force: false)
     if ::Thread.current[@key]
       if ::Thread.current[@key_count] == 1 || force
-        if ::Thread.current[@discard_key]
-          begin
-            @available.decrement_created
-            ::Thread.current[@discard_key].call(::Thread.current[@key])
-          rescue
-            nil
-          ensure
-            ::Thread.current[@discard_key] = nil
+        begin
+          if ::Thread.current[@discard_key]
+            begin
+              @available.decrement_created
+              ::Thread.current[@discard_key].call(::Thread.current[@key])
+            rescue
+              nil
+            ensure
+              ::Thread.current[@discard_key] = nil
+            end
+          else
+            @available.push(::Thread.current[@key])
           end
-        else
-          @available.push(::Thread.current[@key])
+        ensure
+          ::Thread.current[@key] = nil
+          ::Thread.current[@key_count] = nil
         end
-        ::Thread.current[@key] = nil
-        ::Thread.current[@key_count] = nil
       else
         ::Thread.current[@key_count] -= 1
       end
