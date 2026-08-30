@@ -141,7 +141,10 @@ class ConnectionPool::TimedStack
   ##
   # Reduce the created count
   def decrement_created
-    @created -= 1 unless @created == 0
+    @mutex.synchronize do
+      @created -= 1 unless @created == 0
+      @resource.broadcast
+    end
   end
 
   private
