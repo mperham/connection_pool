@@ -55,6 +55,7 @@ class ConnectionPool
     @available = TimedStack.new(size: @size, &block)
     @key = :"pool-#{@available.object_id}"
     @key_count = :"pool-#{@available.object_id}-count"
+    @key_kwargs = :"pool-#{@available.object_id}-kwargs"
     @discard_key = :"pool-#{@available.object_id}-discard"
     INSTANCES[self] = self if auto_reload_after_fork && INSTANCES
   end
@@ -118,6 +119,7 @@ class ConnectionPool
       conn = @available.pop(timeout:, **kwargs)
       ::Thread.current[@key] = conn
       ::Thread.current[@key_count] = 1
+      ::Thread.current[@key_kwargs] = kwargs
       conn
     end
   end
@@ -136,11 +138,12 @@ class ConnectionPool
               ::Thread.current[@discard_key] = nil
             end
           else
-            @available.push(::Thread.current[@key])
+            @available.push(::Thread.current[@key], **::Thread.current[@key_kwargs])
           end
         ensure
           ::Thread.current[@key] = nil
           ::Thread.current[@key_count] = nil
+          ::Thread.current[@key_kwargs] = nil
         end
       else
         ::Thread.current[@key_count] -= 1

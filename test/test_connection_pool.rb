@@ -235,6 +235,23 @@ class TestConnectionPool < Minitest::Test
     assert_equal e.message, options.to_s
   end
 
+  def test_with_options_on_checkin
+    pool = ConnectionPool.new(timeout: 0, size: 1) { Object.new }
+    stack = pool.instance_variable_get(:@available)
+    stored_options = []
+
+    stack.define_singleton_method(:store_connection) do |connection, **options|
+      stored_options << options
+      super(connection, **options)
+    end
+
+    pool.with(role: :replica) do
+      pool.with(role: :primary) {}
+    end
+
+    assert_equal [{role: :replica}], stored_options
+  end
+
   def test_checkin
     pool = ConnectionPool.new(timeout: 0, size: 1) { NetworkConnection.new }
     conn = pool.checkout
