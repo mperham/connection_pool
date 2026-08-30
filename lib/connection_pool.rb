@@ -49,6 +49,8 @@ class ConnectionPool
     raise ArgumentError, "Connection pool requires a block" unless block_given?
 
     @size = Integer(size)
+    raise ArgumentError, "Connection pool size cannot be negative" if @size.negative?
+
     @timeout = Float(timeout)
     @available = TimedStack.new(size: @size, &block)
     @key = :"pool-#{@available.object_id}"
