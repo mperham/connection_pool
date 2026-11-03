@@ -39,6 +39,11 @@ end
 # - :auto_reload_after_fork - automatically drop all connections after fork, defaults to true
 #
 class ConnectionPool
+  # Built once: a Hash literal argument costs a Hash and its keyword copy per call.
+  DEFER_INTERRUPTS = {Exception => :never}.freeze
+  IMMEDIATE_INTERRUPTS = {Exception => :immediate}.freeze
+  private_constant :DEFER_INTERRUPTS, :IMMEDIATE_INTERRUPTS
+
   def self.wrap(**kwargs, &block)
     Wrapper.new(**kwargs, &block)
   end
@@ -64,10 +69,10 @@ class ConnectionPool
     # We need to manage exception handling manually here in order
     # to work correctly with `Timeout.timeout` and `Thread#raise`.
     # Otherwise an interrupted Thread can leak connections.
-    Thread.handle_interrupt(Exception => :never) do
+    Thread.handle_interrupt(DEFER_INTERRUPTS) do
       conn = checkout(**kwargs)
       begin
-        Thread.handle_interrupt(Exception => :immediate) do
+        Thread.handle_interrupt(IMMEDIATE_INTERRUPTS) do
           yield conn
         end
       ensure
