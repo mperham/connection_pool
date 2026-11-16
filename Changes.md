@@ -1,5 +1,11 @@
 # connection_pool Changelog
 
+3.0.3
+------
+
+- Fix Ruby 3.3 syntax error [#215]
+- Minor bugfixes and performance improvements
+
 3.0.2
 ------
 
