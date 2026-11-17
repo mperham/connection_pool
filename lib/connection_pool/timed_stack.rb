@@ -97,6 +97,7 @@ class ConnectionPool::TimedStack
       @resource.broadcast
 
       shutdown_connections
+    ensure
       @shutdown_block = nil if reload
     end
   end

@@ -174,6 +174,34 @@ class TestConnectionPoolTimedStack < Minitest::Test
     end
   end
 
+  def test_pop_shutdown_reload_block_raises
+    stack = ConnectionPool::TimedStack.new(size: 2) { Object.new }
+    first = stack.pop
+    second = stack.pop
+    stack.push(first)
+    stack.push(second)
+
+    assert_raises IOError do
+      stack.shutdown(reload: true) { raise IOError, "close failed" }
+    end
+
+    assert_same first, stack.pop
+    refute_same second, stack.pop
+  end
+
+  def test_pop_shutdown_block_raises
+    stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
+    stack.push(stack.pop)
+
+    assert_raises IOError do
+      stack.shutdown { raise IOError, "close failed" }
+    end
+
+    assert_raises ConnectionPool::PoolShuttingDownError do
+      stack.pop
+    end
+  end
+
   def test_push
     stack = ConnectionPool::TimedStack.new(size: 1) { Object.new }
 
